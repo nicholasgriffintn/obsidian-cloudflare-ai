@@ -1,5 +1,5 @@
 import { SvelteComponent } from "svelte";
-import { App, Modal, Notice } from "obsidian";
+import { App, Modal, Notice, TFile } from "obsidian";
 
 import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
 import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
@@ -84,14 +84,32 @@ export class ChatModal extends Modal {
         }
     }
 
-    private enrichMessageWithContext(message: string, searchResults: VectorSearchResult | null): string {
+    private async enrichMessageWithContext(message: string, searchResults: VectorSearchResult | null): Promise<string> {
         if (!searchResults?.matches?.length) {
             return message;
         }
 
-        const context = searchResults.matches
-            .map((match: VectorMatch) => match.id)
+        const context = (await Promise.all(searchResults.matches
+            .map(async (match: VectorMatch) => {
+                const file = this.app.vault.getAbstractFileByPath(match.id);
+                if (!file || !(file instanceof TFile)) {
+                    return null;
+                }
+                
+                try {
+                    const content = await this.app.vault.cachedRead(file);
+                    return `Note: ${match.id}\n${content}`;
+                } catch (error) {
+                    console.error(`Error reading note ${match.id}:`, error);
+                    return null;
+                }
+            })))
+            .filter(content => content !== null)
             .join("\n\n");
+
+        if (!context) {
+            return message;
+        }
 
         return `Context from my notes:\n\n${context}\n\nQuestion: ${message}`;
     }
@@ -114,7 +132,7 @@ export class ChatModal extends Modal {
             const embedding = await this.generateEmbedding(message);
             const searchResults = embedding ? await this.searchSimilarNotes(embedding) : null;
 
-            const messageWithContext = this.enrichMessageWithContext(message, searchResults);
+            const messageWithContext = await this.enrichMessageWithContext(message, searchResults);
             this.apiMessages.push({ ...userMessage, content: messageWithContext });
 
             const response = await this.gateway.generateText(

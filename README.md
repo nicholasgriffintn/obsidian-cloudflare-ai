@@ -44,6 +44,8 @@ curl https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/vectorize/v2/inde
 - [ ] Add an image generation mode when you can insert the response into the current note.
 - [ ] Add a speech to text mode.
 - [ ] Look at adding other providers like Anthropic, OpenAI, etc.
+- [ ] Make the UI nicer where possible.
+- [ ] Figure out how to stream responses in (may be a problem with `request` from Obsidian, which we need to use to avoid CORS, maybe need an alternative).
 
 ## Requirements
 

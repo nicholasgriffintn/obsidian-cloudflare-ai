@@ -52,7 +52,7 @@ export class SyncService {
         try {
             this.logger.debug(`Processing file: ${file.path}`);
             
-            const content = await this.app.vault.read(file);
+            const content = await this.app.vault.cachedRead(file);
             if (!content.trim()) {
                 this.logger.warn(`Skipping empty file: ${file.path}`);
                 return;
