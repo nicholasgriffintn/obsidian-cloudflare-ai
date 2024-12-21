@@ -2,13 +2,15 @@
 
 A plugin for Obsidian that adds an AI assistant with RAG functionality via Cloudflare AI.
 
-Props to the [Obsidian Svelte Plugin](https://github.com/emilio-toledo/obsidian-svelte-plugin) for the base structure!
-
 ## Features
 
 - 🤖 Chat with AI through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) using their provided [Models](https://developers.cloudflare.com/workers-ai/models/).
 - 📝 Sync your Obsidian notes to a [Cloudflare Vectorize](https://developers.cloudflare.com/vectorize/) index.
 - 🔄 Auto-sync your Obsidian notes to the Vectorize index at a set interval.
+
+This is currently a work in progress, however, for now, here's a quick preview of the chat with a response that uses matching notes for context:
+
+https://github.com/user-attachments/assets/cea3a90e-84ec-41ed-bd2b-c8dbfd51ce7c
 
 ## TODO
 
@@ -67,3 +69,7 @@ curl https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/vectorize/v2/inde
 2. Run `pnpm install` and then `pnpm run build` to build the plugin.
 3. Open Obsidian and enable the plugin in the Obsidian settings.
 4. Refresh your installed plugins list.
+
+## Thanks
+
+Props to the [Obsidian Svelte Plugin](https://github.com/emilio-toledo/obsidian-svelte-plugin) for the base structure!
