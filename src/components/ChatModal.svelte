@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from "svelte";
 	export let messages: Record<string, any>[];
 	export let isProcessing: boolean;
 	export let onSendMessage: (message: string) => void;
@@ -6,13 +7,47 @@
 	export let onCopyConversation: (content: string) => void;
 
 	let inputText = "";
+	let messagesContainer: HTMLDivElement;
+	let textArea: HTMLTextAreaElement;
 
-	$: console.log('Messages in Svelte component:', messages);
+	$: console.log("Messages in Svelte component:", messages);
 
-	const handleSubmit = () => {
-		if (inputText.trim()) {
-			onSendMessage(inputText);
-			inputText = "";
+	$: if (messages && messagesContainer) {
+		setTimeout(() => {
+			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		}, 0);
+	}
+
+	const adjustTextAreaHeight = () => {
+		if (textArea) {
+			textArea.style.height = "auto";
+			textArea.style.height = `${Math.min(textArea.scrollHeight, 200)}px`;
+		}
+	};
+
+	onMount(() => {
+		if (textArea) {
+			adjustTextAreaHeight();
+		}
+	});
+
+	const handleSubmit = async () => {
+		if (inputText.trim() && !isProcessing) {
+			try {
+				await onSendMessage(inputText.trim());
+				inputText = "";
+				adjustTextAreaHeight();
+			} catch (error) {
+				console.error("Error sending message:", error);
+				throw error;
+			}
+		}
+	};
+
+	const handleKeyDown = (e: KeyboardEvent) => {
+		if (e.key === "Enter" && !e.shiftKey) {
+			e.preventDefault();
+			handleSubmit();
 		}
 	};
 
@@ -20,45 +55,77 @@
 		onClearMessages();
 	};
 
-	const copyToClipboard = async (content: string) => {
-		onCopyConversation(content);
+	const copyMessageToClipboard = async (content: string) => {
+		try {
+			await onCopyConversation(content);
+		} catch (error) {
+			console.error("Error copying message:", error);
+			throw error;
+		}
 	};
 </script>
 
 <div class="container">
 	{#if messages && messages.length > 0}
-		<div class="messages">
+		<div
+			class="messages"
+			bind:this={messagesContainer}
+			role="log"
+			aria-live="polite"
+		>
 			{#each messages as message (message.content)}
-				<div
-					class="message {message.role}"
-					on:click={() => copyToClipboard(message.content)}
-					on:keydown={(e) =>
-						e.key === "Enter" && copyToClipboard(message.content)}
-					role="button"
-					tabindex="0"
-				>
-					<p>{message.content}</p>
+				<div class="message-wrapper {message.role}" role="article">
+					<div
+						class="message"
+						on:click={() => copyMessageToClipboard(message.content)}
+						on:keydown={(e) =>
+							e.key === "Enter" &&
+							copyMessageToClipboard(message.content)}
+						role="button"
+						tabindex="0"
+						aria-label="Click to copy message"
+					>
+						<div class="message-header">
+							<span class="role-indicator">
+								{message.role === "assistant" ? "🤖" : "👤"}
+							</span>
+						</div>
+						<div class="message-content">
+							<p>{message.content}</p>
+						</div>
+					</div>
 				</div>
 			{/each}
 		</div>
 	{:else}
 		<div class="welcome-message">
-			<h3>Welcome! 👋</h3>
-			<p>Send a message to start a conversation.</p>
+			<h3>Hi there! 👋</h3>
+			<p>Send a message to start a conversation with your notes.</p>
+		</div>
+	{/if}
+
+	{#if isProcessing}
+		<div class="typing-indicator">
+			<span>●</span>
+			<span>●</span>
+			<span>●</span>
 		</div>
 	{/if}
 
 	<div class="input-container">
 		<div class="input-controls">
-			<input
-				type="text"
-				placeholder="Ask a question here"
-				bind:value={inputText}
-				on:keypress={(e) => e.key === "Enter" && handleSubmit()}
-				disabled={isProcessing}
-			/>
+			<textarea
+                bind:this={textArea}
+                bind:value={inputText}
+                on:input={adjustTextAreaHeight}
+                on:keydown={handleKeyDown}
+                placeholder="Type your message here... (Shift + Enter for new line)"
+                disabled={isProcessing}
+                rows="3"
+                aria-label="Message input"
+            />
 			<button
-				disabled={isProcessing}
+				disabled={isProcessing || !inputText.trim()}
 				class="submit"
 				on:click={handleSubmit}
 			>
@@ -70,7 +137,12 @@
 	{#if messages?.length > 0}
 		<div class="actions">
 			<button on:click={clearMessages}>Clear</button>
-			<button on:click={async () => await copyToClipboard(messages.map(m => m.content).join("\n\n"))}>Copy conversation</button>
+			<button
+				on:click={async () =>
+					await copyMessageToClipboard(
+						messages.map((m) => m.content).join("\n\n"),
+					)}>Copy conversation</button
+			>
 		</div>
 	{/if}
 </div>
@@ -106,10 +178,10 @@
 	.input-controls {
 		display: flex;
 		gap: 0.5rem;
-		align-items: center;
+		align-items: start;
 	}
 
-	.input-controls input[type="text"] {
+	.input-controls textarea {
 		flex: 1;
 	}
 

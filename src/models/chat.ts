@@ -42,22 +42,12 @@ export class ChatModel extends Modal {
             }];
             this.updateComponent();
 
-            this._messages = [...this._messages, {
-                role: "assistant",
-                content: "thinking..."
-            }];
-            this.updateComponent();
-
             this.prompt = "";
 
             const response = await this.gateway.generateText(
                 this._messages,
                 this.contentEl
             );
-
-            // Remove thinking message
-            this._messages = this._messages.slice(0, -1);
-            this.updateComponent();
 
             if (!response) {
                 throw new Error("No response from AI Gateway");
