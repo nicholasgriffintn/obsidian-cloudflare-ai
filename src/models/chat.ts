@@ -1,37 +1,114 @@
 import { SvelteComponent } from "svelte";
-import { App, Modal } from "obsidian";
+import { App, Modal, Notice } from "obsidian";
 
 import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
 import ChatModalComponent from "../components/ChatModal.svelte";
 
-export class CHatModel extends Modal {
+export class ChatModel extends Modal {
+    private _messages: Record<string, any>[] = [];
+    private component: ChatModalComponent | null = null;
     svelteComponents: SvelteComponent[] = [];
-	prompt!: string;
-	messages!: Record<string, any>[];
-	isProcessing!: boolean;
-	gateway!: CloudflareAIGateway;
+    prompt!: string;
+    isProcessing!: boolean;
+    gateway!: CloudflareAIGateway;
 
-	constructor(app: App) {
-		super(app);
-		this.isProcessing = false;
-	}
+    constructor(app: App, gateway: CloudflareAIGateway) {
+        super(app);
+        this.gateway = gateway;
+        this.isProcessing = false;
+    }
 
-	onOpen() {
+    private updateComponent() {
+        if (this.component) {
+            this.component.$set({ 
+                messages: [...this._messages],  // Force new array reference
+                isProcessing: this.isProcessing 
+            });
+        }
+    }
+
+    async onSendMessage(message: string) {
+        if (!message.trim()) return;
+        this.isProcessing = true;
+
+        try {
+            if (!this.gateway) {
+                throw new Error("Gateway not initialized");
+            }
+
+            this._messages = [...this._messages, {
+                role: "user",
+                content: message
+            }];
+            this.updateComponent();
+
+            this._messages = [...this._messages, {
+                role: "assistant",
+                content: "thinking..."
+            }];
+            this.updateComponent();
+
+            this.prompt = "";
+
+            const response = await this.gateway.generateText(
+                this._messages,
+                this.contentEl
+            );
+
+            // Remove thinking message
+            this._messages = this._messages.slice(0, -1);
+            this.updateComponent();
+
+            if (!response) {
+                throw new Error("No response from AI Gateway");
+            }
+
+            this._messages = [...this._messages, {
+                role: "assistant",
+                content: response
+            }];
+            this.updateComponent();
+
+        } catch (error) {
+            console.error("Error generating response:", error);
+            new Notice("Error generating response. Please try again.");
+            this._messages = this._messages.slice(0, -1);
+            this.updateComponent();
+        } finally {
+            this.isProcessing = false;
+            this.updateComponent();
+        }
+    }
+
+    onOpen() {
         const { contentEl } = this;
+        contentEl.empty();
         contentEl.addClass("chat-modal");
-        contentEl.createEl("h1", { text: "Hello, how can I help you?" });
 
-        this.svelteComponents.push(
-            new ChatModalComponent({
-                target: contentEl,
-                props: {
-                    app: this.app,
-                },
-            }),
-        );
-	}
+        this.component = new ChatModalComponent({
+            target: contentEl,
+            props: {
+                messages: this._messages,
+                isProcessing: this.isProcessing,
+                onSendMessage: (message: string) => this.onSendMessage(message),
+                onClearMessages: () => this.onClearMessages(),
+                onCopyConversation: (content: string) => this.onCopyConversation(content),
+            },
+        });
 
-	onClose() {
-		this.contentEl.empty();
-	}
+        this.svelteComponents.push(this.component);
+    }
+
+    async onClearMessages() {
+        this._messages = [];
+        this.updateComponent();
+    }
+
+    async onCopyConversation(content: string) {
+        await navigator.clipboard.writeText(content);
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
 }

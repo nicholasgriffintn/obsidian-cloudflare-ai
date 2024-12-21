@@ -7,7 +7,8 @@ import {
 } from "obsidian";
 import "virtual:uno.css";
 
-import { CHatModel } from "./models/chat";
+import { ChatModel } from "./models/chat";
+import { CloudflareAIGateway } from "./lib/cloudflare-ai-gateway";
 
 interface CloudflareAIPluginSettings {
 	cloudflareAccountId: string;
@@ -29,13 +30,27 @@ const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 
 export default class CloudflareAIPlugin extends Plugin {
 	settings!: CloudflareAIPluginSettings;
+	gateway!: CloudflareAIGateway;
+
+	async loadGateway() {
+		this.gateway = new CloudflareAIGateway(
+			this.settings.cloudflareAccountId,
+			this.settings.cloudflareAiGatewayId,
+			this.settings.cloudflareAiApiKey,
+			this.settings.modelId,
+			this.settings.maxTokens,
+			this.settings.temperature,
+		);
+	}
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		await this.loadGateway();
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		await this.loadGateway();
 	}
 
 	async onload() {
@@ -45,7 +60,7 @@ export default class CloudflareAIPlugin extends Plugin {
 			id: "start-chat",
 			name: "Start Chat",
 			callback: () => {
-				const chatModel = new CHatModel(this.app);
+				const chatModel = new ChatModel(this.app, this.gateway);
 				chatModel.open();
 			},
 		});

@@ -1,4 +1,4 @@
-import { MarkdownView, Notice, request } from "obsidian";
+import { Notice, request } from "obsidian";
 
 const BASE_AI_GATEWAY_URL = "https://gateway.ai.cloudflare.com/v1";
 
@@ -36,7 +36,7 @@ export class CloudflareAIGateway {
 			type = "text",
 		}: {
 			modelId: string;
-			messages?: string;
+			messages?: any;
 			prompt?: string;
 			shouldStream: boolean;
 			type: "text";
@@ -60,19 +60,35 @@ export class CloudflareAIGateway {
 			if (type === "text") {
 				body.max_tokens = this.maxTokens;
 				body.temperature = this.temperature;
-				body.stream = shouldStream;
 			}
 
-			const response = await request({
-				url: `${BASE_AI_GATEWAY_URL}/${this.cloudflareAccountId}/${this.cloudflareAiGatewayId}/workers-ai/${modelId}`,
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${this.cloudflareAiApiKey}`,
-				},
-				body: JSON.stringify(body),
-			});
+			const response = await request(
+				{
+					url:
+						`${BASE_AI_GATEWAY_URL}/${this.cloudflareAccountId}/${this.cloudflareAiGatewayId}/workers-ai/${modelId}`,
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${this.cloudflareAiApiKey}`,
+						"Content-Type": "application/json",
+						"cf-aig-metadata": JSON.stringify({ email: "test@test.com" }),
+					},
+					body: JSON.stringify(body),
+				}
+			);
 
-			return response;
+			let data;
+
+			try {
+				data = JSON.parse(response);
+			} catch (error) {
+				throw new Error("Invalid response from AI Gateway");
+			}
+
+			if (!data?.result?.response) {
+				throw new Error("No response from AI Gateway");
+			}
+
+			return data.result.response;
 		};
 	}
 
@@ -83,7 +99,6 @@ export class CloudflareAIGateway {
 	async generateText(
 		messages: Record<string, any>,
 		htmlElement: HTMLElement,
-		view: MarkdownView,
 	): Promise<string | undefined> {
 		try {
 			const shouldStream = htmlElement !== undefined;
