@@ -14,7 +14,9 @@
 
 	$: if (messages && messagesContainer) {
 		setTimeout(() => {
-			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+			if (messagesContainer) {
+				messagesContainer.scrollTop = messagesContainer.scrollHeight;
+			}
 		}, 0);
 	}
 
