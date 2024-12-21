@@ -9,7 +9,7 @@ on:
 env:
   PLUGIN_NAME: cloudflare-ai
   NODE_VERSION: 22
-  PNPM_VERSION: 8
+  PNPM_VERSION: 9.15.0
 
 jobs:
   build:
@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
@@ -51,7 +51,7 @@ jobs:
           zip -r ${{ env.PLUGIN_NAME }}-${{ steps.get_version.outputs.VERSION }}.zip ${{ env.PLUGIN_NAME }}
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v1.1.0
         with:
           files: |
             ${{ env.PLUGIN_NAME }}-${{ steps.get_version.outputs.VERSION }}.zip
