@@ -212,4 +212,16 @@
 	.welcome-message h3 {
 		margin: 0;
 	}
+
+    .typing-indicator {
+        display: flex;
+        gap: 0.25rem;
+        padding: 0.5rem;
+        animation: fade 1s infinite;
+    }
+
+    @keyframes fade {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
+    }
 </style>
