@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-cloudflare-ai",
+	"name": "Cloudflare AI",
+	"version": "0.0.1",
+	"minAppVersion": "0.15.0",
+	"description": "An AI assistant with RAG functionality via Cloudflare AI.",
+	"author": "Nicholas Griffin",
+    "authorUrl": "https://nicholasgriffin.dev",
+	"isDesktopOnly": false
+}
