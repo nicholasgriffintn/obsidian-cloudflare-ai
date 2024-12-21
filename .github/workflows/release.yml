@@ -51,7 +51,7 @@ jobs:
           zip -r ${{ env.PLUGIN_NAME }}-${{ steps.get_version.outputs.VERSION }}.zip ${{ env.PLUGIN_NAME }}
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1.1.0
+        uses: softprops/action-gh-release@v1
         with:
           files: |
             ${{ env.PLUGIN_NAME }}-${{ steps.get_version.outputs.VERSION }}.zip
