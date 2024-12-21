@@ -10,7 +10,7 @@
                 "check": "svelte-check --tsconfig ./tsconfig.json",
                 "format": "biome format --write ./src",
                 "lint": "biome lint --apply-unsafe ./src",
-                "version": "npx tsx scripts/bump-version.ts && git add manifest.json public/versions.json"
+                "version": "npx tsx scripts/bump-version.ts"
         },
         "keywords": [],
         "author": "Nicholas Griffin",
