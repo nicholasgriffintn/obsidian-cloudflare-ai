@@ -1,3 +1,6 @@
+---
+type: changelog
+---
 ## 2024-12-20
 
  [](https://developers.cloudflare.com/vectorize/platform/changelog/#2024-12-20)

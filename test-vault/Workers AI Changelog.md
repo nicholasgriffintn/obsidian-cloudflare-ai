@@ -1,3 +1,6 @@
+---
+type: changelog
+---
 ## 2024-09-26
 
  [](https://developers.cloudflare.com/workers-ai/changelog/#2024-09-26)

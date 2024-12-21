@@ -1,47 +1,75 @@
 import { Notice, request } from "obsidian";
 
+import type { Vector, VectorQuery, VectorSearchResult, CloudflareResponse } from "../types";
+
 const BASE_CLOUDFLARE_API_URL = "https://api.cloudflare.com/client/v4/accounts/";
 
-export class CloudflareVectorize {
-    private accountId: string;
-    private apiKey: string;
-    private indexName: string;
+type RequestType = "upsert" | "query";
 
+export class CloudflareVectorize {
+    private static readonly RETRY_DELAY_MS = 1000;
+    private static readonly UPSTREAM_TIMEOUT_ERROR = "vectorize.upstream_timeout";
+    
     constructor(
-        accountId: string,
-        apiKey: string,
-        indexName: string,
+        private readonly accountId: string,
+        private readonly apiKey: string,
+        private readonly indexName: string,
     ) {
-        this.accountId = accountId;
-        this.apiKey = apiKey;
-        this.indexName = indexName;
+        this.validateConfig();
     }
 
-    private async makeRequest(endpoint: string, method: string, body?: any, retries = 3, type: "upsert" | "query" = "upsert") {
-        const url = `${BASE_CLOUDFLARE_API_URL}${this.accountId}/vectorize/v2/${endpoint}`;
-        
+    private validateConfig(): void {
+        if (!this.accountId) {
+            throw new Error("Account ID is required");
+        }
+        if (!this.apiKey) {
+            throw new Error("API key is required");
+        }
+        if (!this.indexName) {
+            throw new Error("Index name is required");
+        }
+    }
+
+    private getEndpointUrl(endpoint: string): string {
+        return `${BASE_CLOUDFLARE_API_URL}${this.accountId}/vectorize/v2/${endpoint}`;
+    }
+
+    private getContentType(type: RequestType): string {
+        return type === "query" ? "application/json" : "application/x-ndjson";
+    }
+
+    private formatRequestBody(body: any, type: RequestType): string {
+        if (type === "query") {
+            return JSON.stringify(body);
+        }
+        return body.map((item: any) => JSON.stringify(item)).join('\n');
+    }
+
+    private async delay(attempt: number): Promise<void> {
+        await new Promise(resolve => 
+            setTimeout(resolve, attempt * CloudflareVectorize.RETRY_DELAY_MS)
+        );
+    }
+
+    private displayError(error: string): void {
+        console.error("Vectorize API error:", error);
+        new Notice(`Vectorize API error: ${error}`, 5000);
+    }
+
+    private async makeRequest<T>(
+        endpoint: string, 
+        method: string, 
+        body: any, 
+        retries = 3, 
+        type: RequestType
+    ): Promise<T | null> {
         for (let attempt = 1; attempt <= retries; attempt++) {
             try {
-                let formattedBody = undefined;
-                if (type === "upsert") {
-                    formattedBody = body ? body.map((item: any) => JSON.stringify(item)).join('\n') : undefined;
-                } else if (type === "query") {
-                    formattedBody = JSON.stringify(body);
-                }
-
-                let contentType = undefined;
-                if (type === "query") {
-                    contentType = "application/json";
-                } else if (type === "upsert") {
-                    contentType = "application/x-ndjson";
-                }
-
-                if (!contentType || !formattedBody) {
-                    throw new Error("Invalid request type or body");
-                }
-
+                const formattedBody = this.formatRequestBody(body, type);
+                const contentType = this.getContentType(type);
+                
                 const response = await request({
-                    url,
+                    url: this.getEndpointUrl(endpoint),
                     method,
                     headers: {
                         'Authorization': `Bearer ${this.apiKey}`,
@@ -51,65 +79,74 @@ export class CloudflareVectorize {
                     throw: false
                 });
 
-                console.log("response", response);
-
-                const data = JSON.parse(response);
-
-                if (!data?.success) {
-                    if (data.errors?.[0]?.message === "vectorize.upstream_timeout") {
-                        if (attempt < retries) {
-                            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-                            continue;
-                        }
+                let data: CloudflareResponse<T>;
+                try {
+                    data = JSON.parse(response);
+                } catch (error) {
+                    throw new Error("Invalid JSON response from Vectorize API");
+                }
+                
+                if (!data.success) {
+                    const firstError = data.errors?.[0];
+                    if (firstError?.message === CloudflareVectorize.UPSTREAM_TIMEOUT_ERROR && attempt < retries) {
+                        await this.delay(attempt);
+                        continue;
                     }
-                    throw new Error(`The request failed with the following error: ${data.errors?.map((error: any) => error.message).join(", ")}`);
+                    throw new Error(
+                        data.errors?.map(error => error.message).join(", ") ?? 
+                        "Unknown error"
+                    );
                 }
 
-                return data.result;
+                return (data.result as T) ?? null;
             } catch (error) {
-                if (attempt === retries) {
-                    this.displayError(`Vectorize API error: ${error}`);
+                const isLastAttempt = attempt === retries;
+                if (isLastAttempt) {
+                    this.displayError(error instanceof Error ? error.message : String(error));
                     throw error;
                 }
-                await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                await this.delay(attempt);
             }
+        }
+        return null;
+    }
+
+    async upsertVectors(vectors: Vector[]): Promise<boolean> {
+        try {
+            const formattedVectors = vectors.map(vector => ({
+                ...vector,
+                values: Array.isArray(vector.values[0]) ? vector.values[0] : vector.values
+            }));
+
+            console.log("Formatted vectors:", formattedVectors);
+
+            const result = await this.makeRequest<{ mutationId: string }>(
+                `indexes/${this.indexName}/upsert`,
+                'POST',
+                formattedVectors,
+                3,
+                "upsert"
+            );
+
+            return Boolean(result?.mutationId);
+        } catch (error) {
+            this.displayError(`Failed to upsert vectors: ${error}`);
+            return false;
         }
     }
 
-    private displayError(error: string) {
-        new Notice(error);
-    }
-
-    async upsertVectors(vectors: Array<{
-        id: string,
-        values: number[],
-        metadata?: Record<string, any>
-    }>) {
-        const formattedVectors = vectors.map(vector => ({
-            ...vector,
-            values: Array.isArray(vector.values[0]) ? vector.values[0] : vector.values
-        }));
-
-        return this.makeRequest(
-            `indexes/${this.indexName}/upsert`,
-            'POST',
-            formattedVectors,
-            3,
-            "upsert"
-        );
-    }
-
-    async queryVectors(query: {
-        vector: number[],
-        topK?: number,
-        metadata?: Record<string, any>
-    }) {
-        return this.makeRequest(
-            `indexes/${this.indexName}/query`,
-            'POST',
-            query,
-            1,
-            "query"
-        );
+    async queryVectors(query: VectorQuery): Promise<VectorSearchResult | null> {
+        try {
+            return await this.makeRequest<VectorSearchResult>(
+                `indexes/${this.indexName}/query`,
+                'POST',
+                query,
+                1,
+                "query"
+            );
+        } catch (error) {
+            this.displayError(`Failed to query vectors: ${error}`);
+            return null;
+        }
     }
 }

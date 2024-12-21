@@ -7,7 +7,7 @@ import {
 } from "obsidian";
 import "virtual:uno.css";
 
-import { ChatModel } from "./models/chat";
+import { ChatModal } from "./modals/chat";
 import { CloudflareAIGateway } from "./lib/cloudflare-ai-gateway";
 import { SyncService } from "./services/sync";
 import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
@@ -97,13 +97,13 @@ export default class CloudflareAIPlugin extends Plugin {
 			id: "start-chat",
 			name: "Start Chat",
 			callback: () => {
-				const chatModel = new ChatModel(
+				const chatModal = new ChatModal(
 					this.app,
 					this.gateway,
 					this.vectorize,
 					this.settings.textEmbeddingsModelId
 				);
-				chatModel.open();
+				chatModal.open();
 			},
 		});
 
