@@ -9,28 +9,44 @@ import "virtual:uno.css";
 
 import { ChatModel } from "./models/chat";
 import { CloudflareAIGateway } from "./lib/cloudflare-ai-gateway";
+import { SyncService } from "./services/sync";
+import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
 
 interface CloudflareAIPluginSettings {
 	cloudflareAccountId: string;
 	cloudflareAiGatewayId: string;
 	cloudflareAiApiKey: string;
+	cloudflareVectorizeApiKey: string;
 	modelId: string;
 	maxTokens: number;
 	temperature: number;
+	textEmbeddingsModelId: string;
+	vectorizeIndexName: string;
+	syncEnabled: boolean;
+	autoSyncInterval: number;
+	lastSyncTime?: number;
 }
 
 const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	cloudflareAccountId: "",
 	cloudflareAiGatewayId: "",
 	cloudflareAiApiKey: "",
+	cloudflareVectorizeApiKey: "",
 	modelId: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
 	maxTokens: 256,
 	temperature: 0.6,
+	textEmbeddingsModelId: "@cf/baai/bge-base-en-v1.5",
+	vectorizeIndexName: "obsidian-notes",
+	syncEnabled: false,
+	autoSyncInterval: 30,
 };
 
 export default class CloudflareAIPlugin extends Plugin {
 	settings!: CloudflareAIPluginSettings;
 	gateway!: CloudflareAIGateway;
+	vectorize!: CloudflareVectorize;
+	syncService!: SyncService;
+	syncStatusBar!: HTMLElement;
 
 	async loadGateway() {
 		this.gateway = new CloudflareAIGateway(
@@ -43,14 +59,35 @@ export default class CloudflareAIPlugin extends Plugin {
 		);
 	}
 
+	async loadVectorize() {
+		this.vectorize = new CloudflareVectorize(
+			this.settings.cloudflareAccountId,
+			this.settings.cloudflareVectorizeApiKey,
+			this.settings.vectorizeIndexName,
+		);
+	}
+
+	async loadSyncService() {
+		this.syncService = new SyncService(
+			this.app,
+			this.vectorize,
+			this.gateway,
+			this.settings.textEmbeddingsModelId
+		);
+	}
+
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 		await this.loadGateway();
+		await this.loadVectorize();
+		await this.loadSyncService();
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 		await this.loadGateway();
+		await this.loadVectorize();
+		await this.loadSyncService();
 	}
 
 	async onload() {
@@ -60,15 +97,60 @@ export default class CloudflareAIPlugin extends Plugin {
 			id: "start-chat",
 			name: "Start Chat",
 			callback: () => {
-				const chatModel = new ChatModel(this.app, this.gateway);
+				const chatModel = new ChatModel(
+					this.app,
+					this.gateway,
+					this.vectorize,
+					this.settings.textEmbeddingsModelId
+				);
 				chatModel.open();
 			},
 		});
 
+		this.syncStatusBar = this.addStatusBarItem();
+		this.syncStatusBar.setText('Sync: Ready');
+
+		this.addCommand({
+			id: "sync-notes",
+			name: "Sync Notes",
+			callback: async () => {
+				await this.syncNotes();
+			}
+		});
+
+		if (this.settings.syncEnabled) {
+			this.registerInterval(
+				window.setInterval(
+					() => this.syncNotes(),
+					this.settings.autoSyncInterval * 60 * 1000
+				)
+			);
+		}
+
 		this.addSettingTab(new CloudflareAIPluginSettingTab(this.app, this));
 	}
 
-	onunload() {}
+	onunload() { }
+
+	async syncNotes() {
+		try {
+			this.syncStatusBar.setText('Sync: In Progress...');
+
+			if (!this.syncService) {
+				throw new Error("Sync service not initialized");
+			}
+
+			await this.syncService.sync();
+
+			this.settings.lastSyncTime = Date.now();
+			await this.saveSettings();
+
+			this.syncStatusBar.setText(`Sync: Complete (${new Date().toLocaleTimeString()})`);
+		} catch (error: unknown) {
+			this.syncStatusBar.setText('Sync: Failed');
+			new Notice('Sync failed: ' + (error instanceof Error ? error.message : String(error)));
+		}
+	}
 }
 
 class CloudflareAIPluginSettingTab extends PluginSettingTab {
@@ -86,6 +168,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 		containerEl.createEl("h2", { text: "Cloudflare AI Plugin" });
 
 		containerEl.createEl("h3", { text: "Cloudflare Account Settings" });
+		containerEl.createEl("p", { text: "These settings are required to interact with the Cloudflare AI services." });
 
 		new Setting(containerEl)
 			.setName("Cloudflare Account ID")
@@ -126,7 +209,21 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 					}),
 			);
 
+		new Setting(containerEl)
+			.setName("Cloudflare Vectorize API Key")
+			.setDesc("The API key for your Cloudflare Vectorize API")
+			.addText((text) =>
+				text
+					.setPlaceholder("Enter your Cloudflare Vectorize API Key")
+					.setValue(this.plugin.settings.cloudflareVectorizeApiKey)
+					.onChange(async (value) => {
+						this.plugin.settings.cloudflareVectorizeApiKey = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
 		containerEl.createEl("h3", { text: "Text Model Settings" });
+		containerEl.createEl("p", { text: "These settings are used for the parameters when talking to the AI." });
 
 		new Setting(containerEl)
 			.setName("Model ID")
@@ -189,5 +286,65 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 						}
 					}),
 			);
+
+		containerEl.createEl("h3", { text: "Cloudflare Vectorize Settings" });
+		containerEl.createEl("p", { text: "These settings are used to interact with the Cloudflare Vectorize service." });
+
+		new Setting(containerEl)
+			.setName("Vectorize Index Name")
+			.setDesc("The name of the index")
+			.addText((text) =>
+				text
+					.setPlaceholder("Enter the name of the index to use")
+					.setValue(this.plugin.settings.vectorizeIndexName)
+					.onChange(async (value) => {
+						this.plugin.settings.vectorizeIndexName = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Text Embeddings Model ID")
+			.setDesc("The ID of the text embeddings model to use")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOptions({
+						"@cf/baai/bge-small-en-v1.5": "BAAI BGE Small English v1.5 (384)",
+						"@cf/baai/bge-base-en-v1.5": "BAAI BGE Base English v1.5 (768)",
+						"@cf/baai/bge-large-en-v1.5": "BAAI BGE Large English v1.5 (1024)",
+					})
+					.setValue(this.plugin.settings.textEmbeddingsModelId)
+					.onChange(async (value) => {
+						this.plugin.settings.textEmbeddingsModelId = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		containerEl.createEl("h3", { text: "Auto Sync Settings" });
+		containerEl.createEl("p", { text: "Sync notes to Cloudflare Vectorize for RAG at regular intervals." });
+
+		new Setting(containerEl)
+			.setName("Enable Auto Sync")
+			.setDesc("Automatically sync notes at regular intervals")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.syncEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.syncEnabled = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Sync Interval")
+			.setDesc("How often to sync (in minutes)")
+			.addText(text => text
+				.setPlaceholder("30")
+				.setValue(this.plugin.settings.autoSyncInterval.toString())
+				.onChange(async (value) => {
+					const interval = parseInt(value);
+					if (interval > 0) {
+						this.plugin.settings.autoSyncInterval = interval;
+						await this.plugin.saveSettings();
+					}
+				}));
 	}
 }
