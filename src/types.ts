@@ -37,6 +37,7 @@ export interface Vector {
     id: string;
     values: number[] | number[][];
     metadata?: Record<string, any>;
+    namespace?: string;
 }
 
 export interface VectorMatch {
@@ -52,7 +53,10 @@ export interface VectorSearchResult {
 export interface VectorQuery {
     vector: number[];
     topK?: number;
-    metadata?: Record<string, any>;
+    returnValues?: boolean;
+    returnMetadata?: "all" | "none" | "indexed";
+    namespace?: string;
+    filter?: Record<string, any>;
 }
 
 export interface VectorizeResponse extends CloudflareResponse<{ uploaded: number }> {}

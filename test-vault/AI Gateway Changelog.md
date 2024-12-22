@@ -3,7 +3,7 @@ type: changelog
 ---
 ## 2024-12-13
 
- [](https://developers.cloudflare.com/ai-gateway/changelog/#2024-12-13)
+ [link](https://developers.cloudflare.com/ai-gateway/changelog/#2024-12-13)
 
 **Bug Fixes**
 

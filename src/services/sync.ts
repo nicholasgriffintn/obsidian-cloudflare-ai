@@ -125,13 +125,30 @@ export class SyncService {
     }
 
     private async upsertVectors(file: TFile, vectors: number[][]): Promise<void> {
+        const metadata: Record<string, any> = {
+            fileName: file.name,
+            extension: file.extension
+        };
+
+        if (file.stat.ctime) {
+            const createdDate = new Date(file.stat.ctime);
+            metadata.created = file.stat.ctime;
+            metadata.createdYear = createdDate.getFullYear();
+            metadata.createdMonth = createdDate.getMonth() + 1;
+        }
+
+        if (file.stat.mtime) {
+            const modifiedDate = new Date(file.stat.mtime);
+            metadata.modified = file.stat.mtime;
+            metadata.modifiedYear = modifiedDate.getFullYear();
+            metadata.modifiedMonth = modifiedDate.getMonth() + 1;
+        }
+
         const upsertResult = await this.vectorize.upsertVectors([{
             id: file.path,
             values: vectors,
-            metadata: {
-                modified: file.stat.mtime,
-                fileName: file.name
-            }
+            metadata,
+            namespace: this.app.vault.getName()
         }]);
 
         if (!upsertResult) {

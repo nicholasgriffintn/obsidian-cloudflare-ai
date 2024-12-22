@@ -3,7 +3,7 @@ type: changelog
 ---
 ## 2024-12-20
 
- [](https://developers.cloudflare.com/vectorize/platform/changelog/#2024-12-20)
+[link](https://developers.cloudflare.com/vectorize/platform/changelog/#2024-12-20)
 
 **Added support for index name reuse**
 
@@ -11,7 +11,7 @@ Vectorize now supports the reuse of index names within the account. An index can
 
 ## 2024-12-19
 
- [](https://developers.cloudflare.com/vectorize/platform/changelog/#2024-12-19)
+ [link](https://developers.cloudflare.com/vectorize/platform/changelog/#2024-12-19)
 
 **Added support for range queries in metadata filters**
 

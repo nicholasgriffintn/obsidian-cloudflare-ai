@@ -75,7 +75,8 @@ export class ChatModal extends Modal {
 
             return await this.vectorize.queryVectors({
                 vector,
-                topK: this.settings.topK
+                topK: this.settings.topK,
+                namespace: this.app.vault.getName()
             });
         } catch (error) {
             console.error("Error searching vectors:", error);
