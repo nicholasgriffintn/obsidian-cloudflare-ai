@@ -92,6 +92,7 @@ export default class CloudflareAIPlugin extends Plugin {
 					this.gateway,
 					this.vectorize,
 					this.settings,
+					this.syncService,
 				);
 				chatModal.open();
 			},

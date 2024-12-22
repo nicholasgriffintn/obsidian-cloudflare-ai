@@ -18,14 +18,6 @@ export class SyncService {
 		this.logger = new Logger();
 	}
 
-	private isFileInIgnoredFolder(file: TFile): boolean {
-		return this.ignoredFolders.some((folder) => {
-			const normalizedFolder = folder.toLowerCase().replace(/\\/g, "/");
-			const normalizedFile = file.path.toLowerCase().replace(/\\/g, "/");
-			return normalizedFile.startsWith(normalizedFolder + "/");
-		});
-	}
-
 	async sync(): Promise<SyncResult> {
 		const result: SyncResult = {
 			successful: 0,
@@ -42,7 +34,8 @@ export class SyncService {
 
 		const filesToSync = [];
 		for (const file of filteredFiles) {
-			const syncState = await this.getSyncState(file);
+            const vectorId = this.createVectorId(file.name);
+			const syncState = await this.getSyncState(vectorId);
 			if (!syncState || syncState.lastModified !== file.stat.mtime) {
 				filesToSync.push(file);
 			} else {
@@ -67,6 +60,18 @@ export class SyncService {
 		return result;
 	}
 
+    public createVectorId(path: string): string {
+        return btoa(path).slice(0, 32);
+    }
+
+	private isFileInIgnoredFolder(file: TFile): boolean {
+		return this.ignoredFolders.some((folder) => {
+			const normalizedFolder = folder.toLowerCase().replace(/\\/g, "/");
+			const normalizedFile = file.path.toLowerCase().replace(/\\/g, "/");
+			return normalizedFile.startsWith(normalizedFolder + "/");
+		});
+	}
+
 	private validateServices(): void {
 		if (!this.vectorize) {
 			throw new Error("Vectorize service not initialized");
@@ -86,7 +91,8 @@ export class SyncService {
 				return;
 			}
 
-			const syncState = await this.getSyncState(file);
+            const vectorId = this.createVectorId(file.name);
+			const syncState = await this.getSyncState(vectorId);
 			if (syncState && syncState.lastModified === file.stat.mtime) {
 				this.logger.debug(`File ${file.path} hasn't changed, skipping`);
 				result.successful++;
@@ -98,8 +104,9 @@ export class SyncService {
 				this.logger.warn(`Skipping file ${file.path} due to no vectors`);
 				return;
 			}
-			await this.upsertVectors(file, vectors);
-			await this.saveSyncState(file, vectors);
+            const metadata = this.getMetadata(file);
+			await this.upsertVectors(vectorId, vectors, metadata);
+			await this.saveSyncState(vectorId, file, vectors, metadata);
 
 			result.successful++;
 			this.logger.debug(`Successfully processed: ${file.path}`);
@@ -132,8 +139,8 @@ export class SyncService {
 		return vectors.data;
 	}
 
-	private async upsertVectors(file: TFile, vectors: number[][]): Promise<void> {
-		const metadata: Record<string, any> = {
+    private getMetadata(file: TFile): Record<string, any> {
+        const metadata: Record<string, any> = {
 			fileName: file.name,
 			extension: file.extension,
 		};
@@ -152,9 +159,13 @@ export class SyncService {
 			metadata.modifiedMonth = modifiedDate.getMonth() + 1;
 		}
 
+		return metadata;
+	}
+
+	private async upsertVectors(id: string, vectors: number[][], metadata: Record<string, any>): Promise<void> {
 		const upsertResult = await this.vectorize.upsertVectors([
 			{
-				id: file.path,
+				id,
 				values: vectors,
 				metadata,
 				namespace: this.app.vault.getName(),
@@ -173,35 +184,34 @@ export class SyncService {
 		}
 	}
 
-	private async saveSyncState(file: TFile, vectors: number[][]): Promise<void> {
+	private async saveSyncState(id: string, file: TFile, vectors: number[][], metadata: Record<string, any>): Promise<void> {
 		const syncState = {
+			id,
 			path: file.path,
 			lastSync: Date.now(),
 			lastModified: file.stat.mtime,
+			metadata,
 			vectors: vectors,
 		};
 
-		const syncPath = `.cloudflare-ai/sync/${file.path.replace(
-			/\//g,
-			"_",
-		)}.json`;
+		const syncPath = `.cloudflare-ai/sync/${id}.json`;
 		await this.app.vault.adapter.write(
 			syncPath,
 			JSON.stringify(syncState, null, 2),
 		);
 	}
 
-	private async getSyncState(file: TFile): Promise<{
+	async getSyncState(vectorId: string): Promise<{
+		id: string;
+		path: string;
 		lastSync: number;
 		lastModified: number;
+		metadata: Record<string, any>;
 		vectors: number[][];
 	} | null> {
 		await this.ensureSyncDirectory();
 
-		const syncPath = `.cloudflare-ai/sync/${file.path.replace(
-			/\//g,
-			"_",
-		)}.json`;
+		const syncPath = `.cloudflare-ai/sync/${vectorId}.json`;
 
 		try {
 			if (await this.app.vault.adapter.exists(syncPath)) {
@@ -209,7 +219,7 @@ export class SyncService {
 				return JSON.parse(content);
 			}
 		} catch (error) {
-			this.logger.warn(`Failed to read sync state for ${file.path}:`, error);
+			this.logger.warn(`Failed to read sync state for ${vectorId}:`, error);
 		}
 
 		return null;

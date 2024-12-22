@@ -11,7 +11,7 @@ import type {
 	CloudflareAIPluginSettings,
 } from "../types";
 import { Logger } from "../lib/logger";
-
+import { SyncService } from "../services/sync";
 export class ChatModal extends Modal {
 	private readonly DEFAULT_SYSTEM_MESSAGE: Message = {
 		role: "system",
@@ -23,7 +23,6 @@ export class ChatModal extends Modal {
 	private apiMessages: Message[] = [];
 	private component: typeof ChatModalComponent | null = null;
 	private readonly svelteComponents: SvelteComponent[] = [];
-
 	private isProcessing = false;
 	private readonly logger: Logger;
 
@@ -32,11 +31,13 @@ export class ChatModal extends Modal {
 		private readonly gateway: CloudflareAIGateway,
 		private readonly vectorize: CloudflareVectorize,
 		private readonly settings: CloudflareAIPluginSettings,
+        private readonly sync: SyncService,
 	) {
 		super(app);
 		this.settings = settings;
 		this.validateServices();
 		this.logger = new Logger();
+        this.sync = sync;
 	}
 
 	private validateServices(): void {
@@ -114,14 +115,19 @@ export class ChatModal extends Modal {
 		const context = (
 			await Promise.all(
 				relevantMatches.map(async (match: VectorMatch) => {
-					const file = this.app.vault.getAbstractFileByPath(match.id);
+					const syncState = await this.sync.getSyncState(match.id);
+					if (!syncState) {
+						return null;
+					}
+
+					const file = this.app.vault.getAbstractFileByPath(syncState?.path);
 					if (!file || !(file instanceof TFile)) {
 						return null;
 					}
 
 					try {
 						const content = await this.app.vault.cachedRead(file);
-						return `Note: ${match.id}\n${content}`;
+						return `Note: ${content}`;
 					} catch (error) {
 						this.logger.error(`Error reading note ${match.id}:`, error);
 						return null;
