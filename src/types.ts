@@ -1,3 +1,21 @@
+export interface CloudflareAIPluginSettings {
+	cloudflareAccountId: string;
+	cloudflareAiGatewayId: string;
+	cloudflareAiApiKey: string;
+	cloudflareVectorizeApiKey: string;
+	modelId: string;
+	maxTokens: number;
+	temperature: number;
+	textEmbeddingsModelId: string;
+	vectorizeIndexName: string;
+	topK: number;
+	minSimilarityScore: number;
+	ignoredFolders: string[];
+	syncEnabled: boolean;
+	autoSyncInterval: number;
+	lastSyncTime?: number;
+}
+
 export interface BaseResponse {
     success: boolean;
     errors?: Array<{ 

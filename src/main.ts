@@ -11,22 +11,7 @@ import { ChatModal } from "./modals/chat";
 import { CloudflareAIGateway } from "./lib/cloudflare-ai-gateway";
 import { SyncService } from "./services/sync";
 import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
-
-interface CloudflareAIPluginSettings {
-	cloudflareAccountId: string;
-	cloudflareAiGatewayId: string;
-	cloudflareAiApiKey: string;
-	cloudflareVectorizeApiKey: string;
-	modelId: string;
-	maxTokens: number;
-	temperature: number;
-	textEmbeddingsModelId: string;
-	vectorizeIndexName: string;
-	ignoredFolders: string[];
-	syncEnabled: boolean;
-	autoSyncInterval: number;
-	lastSyncTime?: number;
-}
+import type { CloudflareAIPluginSettings } from "./types";
 
 const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	cloudflareAccountId: "",
@@ -38,6 +23,8 @@ const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	temperature: 0.6,
 	textEmbeddingsModelId: "@cf/baai/bge-base-en-v1.5",
 	vectorizeIndexName: "obsidian-notes",
+	topK: 3,
+	minSimilarityScore: 0.7,
 	ignoredFolders: [],
 	syncEnabled: false,
 	autoSyncInterval: 30,
@@ -104,7 +91,7 @@ export default class CloudflareAIPlugin extends Plugin {
 					this.app,
 					this.gateway,
 					this.vectorize,
-					this.settings.textEmbeddingsModelId
+					this.settings
 				);
 				chatModal.open();
 			},
@@ -320,6 +307,42 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.textEmbeddingsModelId = value;
 						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Top K")
+			.setDesc("The number of results to return")
+			.addText((text) =>
+				text
+					.setPlaceholder("Enter the number of results to return")
+					.setValue(this.plugin.settings.topK.toString())
+					.onChange(async (value) => {
+						const int_value = parseInt(value);
+						if (!int_value || int_value <= 0) {
+							new Notice("Error while parsing topK");
+						} else {
+							this.plugin.settings.topK = int_value;
+							await this.plugin.saveSettings();
+						}
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Min Similarity Score")
+			.setDesc("The minimum similarity score to return")
+			.addText((text) =>
+				text
+					.setPlaceholder("Enter the minimum similarity score")
+					.setValue(this.plugin.settings.minSimilarityScore.toString())
+					.onChange(async (value) => {
+						const float_value = parseFloat(value);
+						if (!float_value || float_value < 0 || float_value > 1) {
+							new Notice("Error while parsing minSimilarityScore");
+						} else {
+							this.plugin.settings.minSimilarityScore = float_value;
+							await this.plugin.saveSettings();
+						}
 					}),
 			);
 

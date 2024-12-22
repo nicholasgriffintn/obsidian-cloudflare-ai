@@ -17,8 +17,6 @@ https://github.com/user-attachments/assets/cea3a90e-84ec-41ed-bd2b-c8dbfd51ce7c
 ## TODO
 
 - [ ] Add the ability to send properties in the metadata.
-- [ ] Add a minimum score for matches
-- [ ] Make top_k configurable
 - [ ] Add filtering of the RAG results.
 ```
 curl https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/vectorize/v2/indexes/$INDEX_NAME/query \

@@ -4,15 +4,13 @@ import { App, Modal, Notice, TFile } from "obsidian";
 import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
 import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
 import ChatModalComponent from "../components/ChatModal.svelte";
-import type { Message, VectorSearchResult, VectorMatch } from "../types";
+import type { Message, VectorSearchResult, VectorMatch, CloudflareAIPluginSettings } from "../types";
 
 export class ChatModal extends Modal {
     private readonly DEFAULT_SYSTEM_MESSAGE: Message = {
         role: 'system',
         content: 'You are a helpful AI assistant that analyzes notes and provides insights. Consider the context carefully before answering questions.'
     };
-
-    private readonly VECTOR_SEARCH_LIMIT = 3;
     
     private messages: Message[] = [];
     private apiMessages: Message[] = [];
@@ -25,9 +23,10 @@ export class ChatModal extends Modal {
         app: App,
         private readonly gateway: CloudflareAIGateway,
         private readonly vectorize: CloudflareVectorize,
-        private readonly textEmbeddingsModelId: string
+        private readonly settings: CloudflareAIPluginSettings
     ) {
         super(app);
+        this.settings = settings;
         this.validateServices();
     }
 
@@ -38,7 +37,7 @@ export class ChatModal extends Modal {
         if (!this.vectorize) {
             throw new Error("Vectorize not initialized");
         }
-        if (!this.textEmbeddingsModelId) {
+        if (!this.settings?.textEmbeddingsModelId) {
             throw new Error("Text embeddings model ID not set");
         }
     }
@@ -55,7 +54,7 @@ export class ChatModal extends Modal {
             const embedding = await this.gateway.makeRequest<{
                 data: number[][]
             }>({
-                modelId: this.textEmbeddingsModelId,
+                modelId: this.settings.textEmbeddingsModelId,
                 prompt: text,
                 shouldStream: false,
                 type: "embedding"
@@ -76,7 +75,7 @@ export class ChatModal extends Modal {
 
             return await this.vectorize.queryVectors({
                 vector,
-                topK: this.VECTOR_SEARCH_LIMIT
+                topK: this.settings.topK
             });
         } catch (error) {
             console.error("Error searching vectors:", error);
@@ -89,7 +88,13 @@ export class ChatModal extends Modal {
             return message;
         }
 
-        const context = (await Promise.all(searchResults.matches
+        const relevantMatches = searchResults.matches.filter(match => match.score >= this.settings.minSimilarityScore);
+        
+        if (!relevantMatches.length) {
+            return message;
+        }
+
+        const context = (await Promise.all(relevantMatches
             .map(async (match: VectorMatch) => {
                 const file = this.app.vault.getAbstractFileByPath(match.id);
                 if (!file || !(file instanceof TFile)) {
