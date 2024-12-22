@@ -61,7 +61,7 @@ export class SyncService {
 	}
 
     public createVectorId(path: string): string {
-        return btoa(path).slice(0, 32);
+        return btoa(path.slice(0, 32));
     }
 
 	private isFileInIgnoredFolder(file: TFile): boolean {
