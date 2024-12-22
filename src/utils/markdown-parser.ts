@@ -38,18 +38,28 @@ export function parseMarkdown(text: string): string {
         .replace(/_(.*?)_/g, '<em>$1</em>')
 
         // Links
-        .replace(/\[([^\]]+)\]$$([^)]+)$$/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
 
         // Unordered lists (handle multiple levels)
-        .replace(/^\s*[-*+]\s+(.*)$/gm, '<li>$1</li>')
-        .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+        .replace(/^(\s*[-*+]\s+.*(?:\n(?!\s*[-*+]|\s*\d+\.).*)*)+/gm, match => {
+            const items = match.split('\n').map(line => 
+                `<li>${line.replace(/^\s*[-*+]\s+/, '')}</li>`
+            ).join('\n');
+            return `<ul>${items}</ul>`;
+        })
 
-        // Ordered lists
-        .replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>')
-        .replace(/(<li>.*<\/li>\n?)+/g, '<ol>$&</ol>')
+        // Ordered lists (handle multiple levels)
+        .replace(/^(\s*\d+\.\s+.*(?:\n(?!\s*[-*+]|\s*\d+\.).*)*)+/gm, match => {
+            const items = match.split('\n').map(line =>
+                `<li>${line.replace(/^\s*\d+\.\s+/, '')}</li>`
+            ).join('\n');
+            return `<ol>${items}</ol>`;
+        })
 
-        // Blockquotes
-        .replace(/^>\s+(.*)$/gm, '<blockquote>$1</blockquote>')
+        // Blockquotes (handle multiple lines)
+        .replace(/^(>\s+.*(?:\n(?!>).*)*)+/gm, match => 
+            `<blockquote>${match.replace(/^>\s+/gm, '')}</blockquote>`
+        )
 
         // Horizontal rules
         .replace(/^(?:---|\*\*\*|___)\s*$/gm, '<hr>')
@@ -61,7 +71,13 @@ export function parseMarkdown(text: string): string {
 
     // Restore code blocks with proper formatting
     html = html.replace(/{{CODEBLOCK(\d+)}}/g, (_, index) => {
-        return `<pre><code>${escapeHTML(codeBlocks[parseInt(index)])}</code></pre>`
+        const code = codeBlocks[parseInt(index)];
+        const lines = code.split('\n');
+        const firstLine = lines[0]?.trim() || '';
+        const hasLang = /^[a-zA-Z0-9]+$/.test(firstLine);
+        const lang = hasLang ? firstLine : '';
+        const content = hasLang ? lines.slice(1).join('\n').trim() : code;
+        return `<pre><code${lang ? ` class="language-${lang}"` : ''}>${escapeHTML(content)}</code></pre>`;
     });
 
     // Restore inline code with proper formatting
