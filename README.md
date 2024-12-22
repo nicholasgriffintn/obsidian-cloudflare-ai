@@ -16,6 +16,7 @@ https://github.com/user-attachments/assets/cea3a90e-84ec-41ed-bd2b-c8dbfd51ce7c
 
 ## TODO
 
+- [ ] Figure out how to stream responses in (may be a problem with `request` from Obsidian, which we need to use to avoid CORS, maybe need an alternative).
 - [ ] Add the ability to send properties in the metadata.
 - [ ] Add filtering of the RAG results.
 ```
@@ -40,12 +41,11 @@ curl https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/vectorize/v2/inde
 ```
 - [ ] Add a way to delete notes from the Vectorize index.
 - [ ] Auto delete notes from the Vectorize index if they are deleted from Obsidian.
-- [ ] Add a text generation mode when you can insert the response into the current note.
-- [ ] Add an image generation mode when you can insert the response into the current note.
+- [ ] Add a text generation mode where you can insert the response into the current note.
+- [ ] Add an image generation mode where you can insert the response into the current note.
 - [ ] Add a speech to text mode.
 - [ ] Look at adding other providers like Anthropic, OpenAI, etc.
 - [ ] Make the UI nicer where possible.
-- [ ] Figure out how to stream responses in (may be a problem with `request` from Obsidian, which we need to use to avoid CORS, maybe need an alternative).
 
 ## Requirements
 
