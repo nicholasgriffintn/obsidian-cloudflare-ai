@@ -111,45 +111,47 @@ export class ChatModal extends Modal {
 			return message;
 		}
 
-		const relevantMatches = searchResults.matches.filter(
-			(match) => match.score >= this.settings.minSimilarityScore,
-		);
+		const relevantMatches = searchResults.matches
+			.filter((match) => match.score >= this.settings.minSimilarityScore)
+			.sort((a, b) => b.score - a.score);
 
 		if (!relevantMatches.length) {
 			return message;
 		}
 
-		const context = (
-			await Promise.all(
-				relevantMatches.map(async (match: VectorMatch) => {
-					const syncState = await this.sync.getSyncState(match.id);
-					if (!syncState) {
-						return null;
-					}
+		const contextPromises = relevantMatches.map(async (match: VectorMatch) => {
+			try {
+				const syncState = await this.sync.getSyncState(match.id);
+				if (!syncState) return null;
 
-					const file = this.app.vault.getAbstractFileByPath(syncState?.path);
-					if (!file || !(file instanceof TFile)) {
-						return null;
-					}
+				const file = this.app.vault.getAbstractFileByPath(syncState?.path);
+				if (!file || !(file instanceof TFile)) return null;
 
-					try {
-						const content = await this.app.vault.cachedRead(file);
-						return `Note: ${content}`;
-					} catch (error) {
-						this.logger.error(`Error reading note ${match.id}:`, error);
-						return null;
-					}
-				}),
-			)
-		)
-			.filter((content) => content !== null)
-			.join("\n\n");
+				const content = await this.app.vault.cachedRead(file);
+				
+				return {
+					content,
+					score: match.score,
+					path: file.path
+				};
+			} catch (error) {
+				this.logger.error(`Error reading note ${match.id}:`, error);
+				return null;
+			}
+		});
 
-		if (!context) {
+		const contexts = (await Promise.all(contextPromises))
+			.filter((ctx): ctx is NonNullable<typeof ctx> => ctx !== null);
+
+		if (!contexts.length) {
 			return message;
 		}
 
-		return `Context from my notes:\n\n${context}\n\nQuestion: ${message}`;
+		const formattedContext = contexts
+			.map(ctx => `[${Math.round(ctx.score * 100)}% relevant from ${ctx.path}]:\n${ctx.content}`)
+			.join("\n\n");
+
+		return `Context from my notes:\n\n${formattedContext}\n\nQuestion: ${message}`;
 	}
 
 	async onSendMessage(
