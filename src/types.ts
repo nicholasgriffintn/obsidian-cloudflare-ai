@@ -3,6 +3,8 @@ export interface CloudflareAIPluginSettings {
 	cloudflareAiGatewayId: string;
 	cloudflareAiApiKey: string;
 	cloudflareVectorizeApiKey: string;
+	cloudflareAiApiKeySaved: boolean;
+	cloudflareVectorizeApiKeySaved: boolean;
 	modelId: string;
 	maxTokens: number;
 	temperature: number;

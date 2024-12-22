@@ -1,5 +1,6 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 import "virtual:uno.css";
+import Electron from "electron";
 
 import { ChatModal } from "./modals/chat";
 import { CloudflareAIGateway } from "./lib/cloudflare-ai-gateway";
@@ -7,6 +8,11 @@ import { SyncService } from "./services/sync";
 import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
 import type { CloudflareAIPluginSettings } from "./types";
 import { Logger } from "./lib/logger";
+import { obfuscate } from "./lib/obfuscate";
+
+const {
+	remote: { safeStorage },
+} = Electron;
 
 const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	cloudflareAccountId: "",
@@ -23,6 +29,8 @@ const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	ignoredFolders: [],
 	syncEnabled: false,
 	autoSyncInterval: 30,
+	cloudflareAiApiKeySaved: false,
+	cloudflareVectorizeApiKeySaved: false,
 };
 
 export default class CloudflareAIPlugin extends Plugin {
@@ -33,11 +41,26 @@ export default class CloudflareAIPlugin extends Plugin {
 	syncStatusBar!: HTMLElement;
 	private readonly logger: Logger = new Logger();
 
+	private getDecryptedApiKey(encryptedKey: string): string {
+		if (!encryptedKey) return '';
+		
+		try {
+			if (safeStorage.isEncryptionAvailable()) {
+				return safeStorage.decryptString(Buffer.from(encryptedKey, 'base64'));
+			}
+		} catch (error) {
+			this.logger.error("Failed to decrypt API key:", error);
+		}
+		return encryptedKey;
+	}
+
 	async loadGateway() {
+		const decryptedAiApiKey = this.getDecryptedApiKey(this.settings.cloudflareAiApiKey);
+		
 		this.gateway = new CloudflareAIGateway(
 			this.settings.cloudflareAccountId,
 			this.settings.cloudflareAiGatewayId,
-			this.settings.cloudflareAiApiKey,
+			decryptedAiApiKey,
 			this.settings.modelId,
 			this.settings.maxTokens,
 			this.settings.temperature,
@@ -45,9 +68,11 @@ export default class CloudflareAIPlugin extends Plugin {
 	}
 
 	async loadVectorize() {
+		const decryptedVectorizeApiKey = this.getDecryptedApiKey(this.settings.cloudflareVectorizeApiKey);
+		
 		this.vectorize = new CloudflareVectorize(
 			this.settings.cloudflareAccountId,
-			this.settings.cloudflareVectorizeApiKey,
+			decryptedVectorizeApiKey,
 			this.settings.vectorizeIndexName,
 		);
 	}
@@ -166,6 +191,8 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 
 	display(): void {
 		const { containerEl } = this;
+		let temporaryCloudflareAiApiKey = '';
+		let temporaryVectorizeApiKey = '';
 
 		new Setting(containerEl)
 			.setName("Cloudflare account ID")
@@ -193,31 +220,145 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(containerEl)
-			.setName("Cloudflare AI API key")
-			.setDesc("The API key for your Cloudflare AI Gateway")
-			.addText((text) =>
-				text
-					.setPlaceholder("Enter your Cloudflare AI API Key")
-					.setValue(this.plugin.settings.cloudflareAiApiKey)
-					.onChange(async (value) => {
-						this.plugin.settings.cloudflareAiApiKey = value;
-						await this.plugin.saveSettings();
-					}),
-			);
+		if (!this.plugin.settings.cloudflareAiApiKeySaved) {
+			const aiApiKeySetting = new Setting(containerEl)
+				.setName("Cloudflare AI API key")
+				.setDesc("The API key for your Cloudflare AI Gateway")
+				.addText((text) =>
+					text
+						.setPlaceholder("Enter your Cloudflare AI API Key")
+						.onChange(async (value) => {
+							temporaryCloudflareAiApiKey = value;
+						})
+				);
 
-		new Setting(containerEl)
-			.setName("Cloudflare Vectorize API key")
-			.setDesc("The API key for your Cloudflare Vectorize API")
-			.addText((text) =>
-				text
-					.setPlaceholder("Enter your Cloudflare Vectorize API Key")
-					.setValue(this.plugin.settings.cloudflareVectorizeApiKey)
-					.onChange(async (value) => {
-						this.plugin.settings.cloudflareVectorizeApiKey = value;
+			aiApiKeySetting.addButton((button) => {
+				button
+					.setButtonText("Save API Key")
+					.onClick(async () => {
+						if (temporaryCloudflareAiApiKey) {
+							try {
+								if (safeStorage.isEncryptionAvailable()) {
+									const encrypted = safeStorage.encryptString(temporaryCloudflareAiApiKey);
+									this.plugin.settings.cloudflareAiApiKey = Buffer.from(encrypted).toString('base64');
+								} else {
+									this.plugin.settings.cloudflareAiApiKey = temporaryCloudflareAiApiKey;
+								}
+								this.plugin.settings.cloudflareAiApiKeySaved = true;
+								temporaryCloudflareAiApiKey = '';
+								await this.plugin.saveSettings();
+								new Notice('Cloudflare AI API key saved successfully');
+								this.display();
+							} catch (error) {
+								new Notice('Failed to save API key');
+								console.error(error);
+							}
+						} else {
+							new Notice('Please enter an API key');
+						}
+					});
+			});
+		} else {
+			const aiApiKeySetting = new Setting(containerEl)
+				.setName("Cloudflare AI API key")
+				.setDesc("The API key for your Cloudflare AI Gateway")
+				.addText((text) => {
+					try {
+						let apiKey = this.plugin.settings.cloudflareAiApiKey;
+						if (safeStorage.isEncryptionAvailable() && apiKey) {
+							const decrypted = safeStorage.decryptString(Buffer.from(apiKey, 'base64'));
+							text.setPlaceholder(obfuscate(decrypted));
+						} else {
+							text.setPlaceholder(obfuscate(apiKey));
+						}
+					} catch (error) {
+						text.setPlaceholder('********');
+					}
+					text.setDisabled(true);
+				});
+
+			aiApiKeySetting.addButton((button) => {
+				button
+					.setButtonText("Remove API Key")
+					.onClick(async () => {
+						this.plugin.settings.cloudflareAiApiKey = '';
+						this.plugin.settings.cloudflareAiApiKeySaved = false;
 						await this.plugin.saveSettings();
-					}),
-			);
+						new Notice('Cloudflare AI API key removed');
+						this.display();
+					});
+			});
+		}
+
+		if (!this.plugin.settings.cloudflareVectorizeApiKeySaved) {
+			const vectorizeApiKeySetting = new Setting(containerEl)
+				.setName("Cloudflare Vectorize API key")
+				.setDesc("The API key for your Cloudflare Vectorize API")
+				.addText((text) =>
+					text
+						.setPlaceholder("Enter your Cloudflare Vectorize API Key")
+						.onChange(async (value) => {
+							temporaryVectorizeApiKey = value;
+						})
+				);
+
+			vectorizeApiKeySetting.addButton((button) => {
+				button
+					.setButtonText("Save API Key")
+					.onClick(async () => {
+						if (temporaryVectorizeApiKey) {
+							try {
+								if (safeStorage.isEncryptionAvailable()) {
+									const encrypted = safeStorage.encryptString(temporaryVectorizeApiKey);
+									this.plugin.settings.cloudflareVectorizeApiKey = Buffer.from(encrypted).toString('base64');
+								} else {
+									this.plugin.settings.cloudflareVectorizeApiKey = temporaryVectorizeApiKey;
+								}
+								this.plugin.settings.cloudflareVectorizeApiKeySaved = true;
+								temporaryVectorizeApiKey = '';
+								await this.plugin.saveSettings();
+								new Notice('Cloudflare Vectorize API key saved successfully');
+								this.display();
+							} catch (error) {
+								new Notice('Failed to save API key');
+								console.error(error);
+							}
+						} else {
+							new Notice('Please enter an API key');
+						}
+					});
+			});
+		} else {
+			const vectorizeApiKeySetting = new Setting(containerEl)
+				.setName("Cloudflare Vectorize API key")
+				.setDesc("The API key for your Cloudflare Vectorize API")
+				.addText((text) => {
+					try {
+						let apiKey = this.plugin.settings.cloudflareVectorizeApiKey;
+						if (safeStorage.isEncryptionAvailable() && apiKey) {
+							const decrypted = safeStorage.decryptString(Buffer.from(apiKey, 'base64'));
+							text.setPlaceholder(obfuscate(decrypted));
+						} else {
+							text.setPlaceholder(obfuscate(apiKey));
+						}
+					} catch (error) {
+						text.setPlaceholder('********');
+					}
+					text.setDisabled(true);
+				});
+
+			vectorizeApiKeySetting.addButton((button) => {
+				button
+					.setButtonText("Remove API Key")
+					.onClick(async () => {
+						this.plugin.settings.cloudflareVectorizeApiKey = '';
+						this.plugin.settings.cloudflareVectorizeApiKeySaved = false;
+						await this.plugin.saveSettings();
+						new Notice('Cloudflare Vectorize API key removed');
+						this.display();
+					});
+			});
+		}
 
 		new Setting(containerEl).setName("Text model").setHeading();
 
