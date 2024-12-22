@@ -154,12 +154,6 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 
-		containerEl.empty();
-		containerEl.createEl("h2", { text: "Cloudflare AI Plugin" });
-
-		containerEl.createEl("h3", { text: "Cloudflare Account Settings" });
-		containerEl.createEl("p", { text: "These settings are required to interact with the Cloudflare AI services." });
-
 		new Setting(containerEl)
 			.setName("Cloudflare Account ID")
 			.setDesc("The ID of your Cloudflare account")
@@ -212,8 +206,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		containerEl.createEl("h3", { text: "Text Model Settings" });
-		containerEl.createEl("p", { text: "These settings are used for the parameters when talking to the AI." });
+		new Setting(containerEl).setName("Text Model").setHeading();
 
 		new Setting(containerEl)
 			.setName("Model ID")
@@ -277,8 +270,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		containerEl.createEl("h3", { text: "Cloudflare Vectorize Settings" });
-		containerEl.createEl("p", { text: "These settings are used to interact with the Cloudflare Vectorize service." });
+		new Setting(containerEl).setName("Cloudflare Vectorize").setHeading();
 
 		new Setting(containerEl)
 			.setName("Vectorize Index Name")
@@ -346,8 +338,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		containerEl.createEl("h3", { text: "Sync Settings" });
-		containerEl.createEl("p", { text: "Sync notes to Cloudflare Vectorize for RAG at regular intervals." });
+		new Setting(containerEl).setName("Sync").setHeading();
 
 		new Setting(containerEl)
 			.setName("Ignored Folders")

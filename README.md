@@ -20,6 +20,35 @@ https://github.com/user-attachments/assets/cea3a90e-84ec-41ed-bd2b-c8dbfd51ce7c
 - [ ] Add the ability to send properties in the metadata.
 - [ ] Add filtering of the RAG results.
 ```
+# Metadata available:
+metadata
+: 
+created
+: 
+1734814580918
+createdMonth
+: 
+12
+createdYear
+: 
+2024
+extension
+: 
+"md"
+fileName
+: 
+"AI Gateway Changelog.md"
+modified
+: 
+1734832007176
+modifiedMonth
+: 
+12
+modifiedYear
+: 
+2024
+
+# How to:
 curl https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/vectorize/v2/indexes/$INDEX_NAME/query \
     -H 'Content-Type: application/json' \
     -H "X-Auth-Email: $CLOUDFLARE_EMAIL" \
