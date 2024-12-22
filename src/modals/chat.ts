@@ -5,6 +5,7 @@ import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
 import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
 import ChatModalComponent from "../components/ChatModal.svelte";
 import type { Message, VectorSearchResult, VectorMatch, CloudflareAIPluginSettings } from "../types";
+import { Logger } from "../lib/logger";
 
 export class ChatModal extends Modal {
     private readonly DEFAULT_SYSTEM_MESSAGE: Message = {
@@ -16,8 +17,9 @@ export class ChatModal extends Modal {
     private apiMessages: Message[] = [];
     private component: typeof ChatModalComponent | null = null;
     private readonly svelteComponents: SvelteComponent[] = [];
-    
+
     private isProcessing = false;
+    private readonly logger: Logger;
 
     constructor(
         app: App,
@@ -28,6 +30,7 @@ export class ChatModal extends Modal {
         super(app);
         this.settings = settings;
         this.validateServices();
+        this.logger = new Logger();
     }
 
     private validateServices(): void {
@@ -62,7 +65,7 @@ export class ChatModal extends Modal {
 
             return embedding?.data?.[0] ?? null;
         } catch (error) {
-            console.error("Error generating embedding:", error);
+            this.logger.error("Error generating embedding:", error);
             return null;
         }
     }
@@ -79,7 +82,7 @@ export class ChatModal extends Modal {
                 namespace: this.app.vault.getName()
             });
         } catch (error) {
-            console.error("Error searching vectors:", error);
+            this.logger.error("Error searching vectors:", error);
             return null;
         }
     }
@@ -106,7 +109,7 @@ export class ChatModal extends Modal {
                     const content = await this.app.vault.cachedRead(file);
                     return `Note: ${match.id}\n${content}`;
                 } catch (error) {
-                    console.error(`Error reading note ${match.id}:`, error);
+                    this.logger.error(`Error reading note ${match.id}:`, error);
                     return null;
                 }
             })))
@@ -155,7 +158,7 @@ export class ChatModal extends Modal {
             this.apiMessages.push(assistantMessage);
 
         } catch (error) {
-            console.error("Error in message processing:", error);
+            this.logger.error("Error in message processing:", error);
             new Notice("Error generating response. Please try again.");
             
             this.messages = this.messages.slice(0, -1);
@@ -196,7 +199,7 @@ export class ChatModal extends Modal {
             await navigator.clipboard.writeText(content);
             new Notice("Conversation copied to clipboard");
         } catch (error) {
-            console.error("Error copying to clipboard:", error);
+            this.logger.error("Error copying to clipboard:", error);
             new Notice("Failed to copy conversation");
         }
     }

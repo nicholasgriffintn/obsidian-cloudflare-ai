@@ -12,6 +12,7 @@ import { CloudflareAIGateway } from "./lib/cloudflare-ai-gateway";
 import { SyncService } from "./services/sync";
 import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
 import type { CloudflareAIPluginSettings } from "./types";
+import { Logger } from "./lib/logger";
 
 const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	cloudflareAccountId: "",
@@ -36,7 +37,8 @@ export default class CloudflareAIPlugin extends Plugin {
 	vectorize!: CloudflareVectorize;
 	syncService!: SyncService;
 	syncStatusBar!: HTMLElement;
-
+	private readonly logger: Logger = new Logger();
+	
 	async loadGateway() {
 		this.gateway = new CloudflareAIGateway(
 			this.settings.cloudflareAccountId,
@@ -71,6 +73,7 @@ export default class CloudflareAIPlugin extends Plugin {
 		await this.loadGateway();
 		await this.loadVectorize();
 		await this.loadSyncService();
+		this.logger.debug("Settings loaded");
 	}
 
 	async saveSettings() {
@@ -78,9 +81,12 @@ export default class CloudflareAIPlugin extends Plugin {
 		await this.loadGateway();
 		await this.loadVectorize();
 		await this.loadSyncService();
+		this.logger.debug("Settings saved");
 	}
 
 	async onload() {
+		this.logger.debug("CloudflareAIPlugin loaded");
+
 		await this.loadSettings();
 
 		this.addCommand({
@@ -120,10 +126,14 @@ export default class CloudflareAIPlugin extends Plugin {
 		this.addSettingTab(new CloudflareAIPluginSettingTab(this.app, this));
 	}
 
-	onunload() { }
+	onunload() {
+		this.logger.debug("CloudflareAIPlugin unloaded");
+	}
 
 	async syncNotes() {
 		try {
+			this.logger.debug("Syncing notes");
+
 			this.syncStatusBar.setText('Sync: In Progress...');
 
 			if (!this.syncService) {
@@ -136,7 +146,10 @@ export default class CloudflareAIPlugin extends Plugin {
 			await this.saveSettings();
 
 			this.syncStatusBar.setText(`Sync: Complete (${new Date().toLocaleTimeString()})`);
+
+			this.logger.debug("Sync complete");
 		} catch (error: unknown) {
+			this.logger.error("Sync failed", error);
 			this.syncStatusBar.setText('Sync: Failed');
 			new Notice('Sync failed: ' + (error instanceof Error ? error.message : String(error)));
 		}
@@ -155,7 +168,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 
 		new Setting(containerEl)
-			.setName("Cloudflare Account ID")
+			.setName("Cloudflare account ID")
 			.setDesc("The ID of your Cloudflare account")
 			.addText((text) =>
 				text
@@ -181,7 +194,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Cloudflare AI API Key")
+			.setName("Cloudflare AI API key")
 			.setDesc("The API key for your Cloudflare AI Gateway")
 			.addText((text) =>
 				text
@@ -194,7 +207,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Cloudflare Vectorize API Key")
+			.setName("Cloudflare Vectorize API key")
 			.setDesc("The API key for your Cloudflare Vectorize API")
 			.addText((text) =>
 				text
@@ -206,7 +219,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(containerEl).setName("Text Model").setHeading();
+		new Setting(containerEl).setName("Text model").setHeading();
 
 		new Setting(containerEl)
 			.setName("Model ID")
@@ -235,7 +248,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Max Tokens")
+			.setName("Max tokens")
 			.setDesc("The maximum number of tokens to generate")
 			.addText((text) =>
 				text
@@ -273,7 +286,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName("Cloudflare Vectorize").setHeading();
 
 		new Setting(containerEl)
-			.setName("Vectorize Index Name")
+			.setName("Vectorize index name")
 			.setDesc("The name of the index")
 			.addText((text) =>
 				text
@@ -286,7 +299,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Text Embeddings Model ID")
+			.setName("Text embeddings model ID")
 			.setDesc("The ID of the text embeddings model to use")
 			.addDropdown((dropdown) =>
 				dropdown
@@ -303,7 +316,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Top K")
+			.setName("Top k")
 			.setDesc("The number of results to return")
 			.addText((text) =>
 				text
@@ -321,7 +334,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Min Similarity Score")
+			.setName("Min similarity score")
 			.setDesc("The minimum similarity score to return")
 			.addText((text) =>
 				text
@@ -341,7 +354,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName("Sync").setHeading();
 
 		new Setting(containerEl)
-			.setName("Ignored Folders")
+			.setName("Ignored folders")
 			.setDesc("Folders to ignore when syncing notes, separated by commas")
 			.addText((text) =>
 				text
@@ -354,7 +367,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Enable Auto Sync")
+			.setName("Enable auto sync")
 			.setDesc("Automatically sync notes at regular intervals")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.syncEnabled)
@@ -364,7 +377,7 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Sync Interval")
+			.setName("Sync interval")
 			.setDesc("How often to sync (in minutes)")
 			.addText(text => text
 				.setPlaceholder("30")

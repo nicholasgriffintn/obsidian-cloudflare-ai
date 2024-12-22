@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { Logger } from "../lib/logger";
+
 	export let messages: Record<string, any>[];
 	export let isProcessing: boolean;
 	export let onSendMessage: (message: string) => void;
@@ -10,7 +12,9 @@
 	let messagesContainer: HTMLDivElement;
 	let textArea: HTMLTextAreaElement;
 
-	$: console.log("Messages in Svelte component:", messages);
+	const logger = new Logger();
+
+	$: logger.debug("Messages in Svelte component:", messages);
 
 	$: if (messages && messagesContainer) {
 		setTimeout(() => {

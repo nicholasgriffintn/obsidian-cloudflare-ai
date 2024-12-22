@@ -1,6 +1,7 @@
 import { Notice, request } from "obsidian";
 
 import type { Vector, VectorQuery, VectorSearchResult, CloudflareResponse } from "../types";
+import { Logger } from "./logger";
 
 const BASE_CLOUDFLARE_API_URL = "https://api.cloudflare.com/client/v4/accounts/";
 
@@ -9,6 +10,7 @@ type RequestType = "upsert" | "query";
 export class CloudflareVectorize {
     private static readonly RETRY_DELAY_MS = 1000;
     private static readonly UPSTREAM_TIMEOUT_ERROR = "vectorize.upstream_timeout";
+    private readonly logger: Logger;
     
     constructor(
         private readonly accountId: string,
@@ -16,6 +18,7 @@ export class CloudflareVectorize {
         private readonly indexName: string,
     ) {
         this.validateConfig();
+        this.logger = new Logger();
     }
 
     private validateConfig(): void {
@@ -52,7 +55,7 @@ export class CloudflareVectorize {
     }
 
     private displayError(error: string): void {
-        console.error("Vectorize API error:", error);
+        this.logger.error("Vectorize API error:", error);
         new Notice(`Vectorize API error: ${error}`, 5000);
     }
 
@@ -118,7 +121,7 @@ export class CloudflareVectorize {
                 values: Array.isArray(vector.values[0]) ? vector.values[0] : vector.values
             }));
 
-            console.log("Formatted vectors:", formattedVectors);
+            this.logger.debug("Formatted vectors:", formattedVectors);
 
             const result = await this.makeRequest<{ mutationId: string }>(
                 `indexes/${this.indexName}/upsert`,

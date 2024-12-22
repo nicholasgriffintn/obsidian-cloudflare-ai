@@ -2,10 +2,11 @@ import { App, TFile } from "obsidian";
 import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
 import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
 import type { SyncResult } from "../types";
+import { Logger } from "../lib/logger";
 
 export class SyncService {
     private readonly batchSize = 5;
-    private readonly logger: Console;
+    private readonly logger: Logger;
 
     constructor(
         private readonly app: App,
@@ -14,7 +15,7 @@ export class SyncService {
         private readonly textEmbeddingsModelId: string,
         private readonly ignoredFolders: string[] = [],
     ) {
-        this.logger = console;
+        this.logger = new Logger();
     }
 
     private isFileInIgnoredFolder(file: TFile): boolean {

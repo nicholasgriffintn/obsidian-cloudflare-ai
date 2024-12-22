@@ -1,10 +1,12 @@
 import { Notice, request } from "obsidian";
 import type { Message, RequestOptions, CloudflareResponse, TextResponse, EmbeddingResponse } from "../types";
+import { Logger } from "./logger";
 
 const BASE_AI_GATEWAY_URL = "https://gateway.ai.cloudflare.com/v1";
 
 export class CloudflareAIGateway {
 	private readonly email: string = "test@test.com";
+	private readonly logger: Logger;
 
     constructor(
         private readonly cloudflareAccountId: string,
@@ -15,6 +17,7 @@ export class CloudflareAIGateway {
         private readonly temperature: number,
     ) {
         this.validateConfig();
+		this.logger = new Logger();
     }
 
     private validateConfig(): void {
@@ -64,7 +67,7 @@ export class CloudflareAIGateway {
 
     private displayError(error: unknown): void {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error("AI Gateway error:", errorMessage);
+        this.logger.error("AI Gateway error:", errorMessage);
         new Notice(`AI Gateway error: ${errorMessage}`, 5000);
     }
 
