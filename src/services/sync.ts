@@ -51,7 +51,12 @@ export class SyncService {
 
 		for (let i = 0; i < filesToSync.length; i += this.batchSize) {
 			const batch = filesToSync.slice(i, i + this.batchSize);
-			await this.processBatch(batch, result, i / this.batchSize + 1, Math.ceil(filesToSync.length / this.batchSize));
+			await this.processBatch(
+				batch,
+				result,
+				i / this.batchSize + 1,
+				Math.ceil(filesToSync.length / this.batchSize),
+			);
 		}
 
 		this.logger.info("Sync completed", result);
@@ -118,15 +123,17 @@ export class SyncService {
 		}
 	}
 
-	private async generateEmbeddings(content: string): Promise<number[][] | null> {
+	private async generateEmbeddings(
+		content: string,
+	): Promise<number[][] | null> {
 		const maxChunkSize = 8192;
-		
+
 		if (content.length > maxChunkSize) {
 			this.logger.debug(`Content too large (${content.length}), chunking...`);
 			const chunks = content.match(/[^.!?]+[.!?]+/g) || [content];
-			let currentChunk = '';
+			let currentChunk = "";
 			const allVectors: number[][] = [];
-			
+
 			for (const sentence of chunks) {
 				if ((currentChunk + sentence).length > maxChunkSize) {
 					const vectors = await this.gateway.makeRequest<{
@@ -145,7 +152,7 @@ export class SyncService {
 					currentChunk += sentence;
 				}
 			}
-			
+
 			if (currentChunk) {
 				const vectors = await this.gateway.makeRequest<{
 					data: number[][];
@@ -159,7 +166,7 @@ export class SyncService {
 					allVectors.push(...vectors.data);
 				}
 			}
-			
+
 			return allVectors;
 		}
 
@@ -278,18 +285,18 @@ export class SyncService {
 		batch: TFile[],
 		result: SyncResult,
 		currentBatch: number,
-		totalBatches: number
+		totalBatches: number,
 	): Promise<void> {
 		this.logger.info(`Processing batch ${currentBatch}/${totalBatches}`);
-		
+
 		const batchResults = await Promise.allSettled(
-			batch.map((file) => this.syncFile(file, result))
+			batch.map((file) => this.syncFile(file, result)),
 		);
-		
+
 		batchResults.forEach((batchResult, index) => {
-			if (batchResult.status === 'rejected') {
+			if (batchResult.status === "rejected") {
 				this.logger.error(
-					`Failed to sync file ${batch[index].path}: ${batchResult.reason}`
+					`Failed to sync file ${batch[index].path}: ${batchResult.reason}`,
 				);
 			}
 		});

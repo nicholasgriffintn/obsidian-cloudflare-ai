@@ -82,7 +82,7 @@ export class CloudflareAIGateway {
 		prompt,
 		shouldStream = false,
 		type = "text",
-		maxRetries = 3
+		maxRetries = 3,
 	}: RequestOptions & { maxRetries?: number }): Promise<T> {
 		let attempt = 0;
 		while (attempt < maxRetries) {
@@ -117,8 +117,12 @@ export class CloudflareAIGateway {
 					data = JSON.parse(response);
 				} catch (error) {
 					if (attempt < maxRetries - 1) {
-						this.logger.warn(`Retry ${attempt + 1}/${maxRetries} due to invalid JSON`);
-						await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+						this.logger.warn(
+							`Retry ${attempt + 1}/${maxRetries} due to invalid JSON`,
+						);
+						await new Promise((resolve) =>
+							setTimeout(resolve, Math.pow(2, attempt) * 1000),
+						);
 						attempt++;
 						continue;
 					}
@@ -126,10 +130,16 @@ export class CloudflareAIGateway {
 				}
 
 				if (!data?.success) {
-					const errorMsg = data.errors?.map((error) => error.message).join(", ") ?? "Unknown error from AI Gateway";
+					const errorMsg =
+						data.errors?.map((error) => error.message).join(", ") ??
+						"Unknown error from AI Gateway";
 					if (errorMsg.includes("rate limit") && attempt < maxRetries - 1) {
-						this.logger.warn(`Retry ${attempt + 1}/${maxRetries} due to rate limit`);
-						await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+						this.logger.warn(
+							`Retry ${attempt + 1}/${maxRetries} due to rate limit`,
+						);
+						await new Promise((resolve) =>
+							setTimeout(resolve, Math.pow(2, attempt) * 1000),
+						);
 						attempt++;
 						continue;
 					}

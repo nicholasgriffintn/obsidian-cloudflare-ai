@@ -128,11 +128,12 @@ export class ChatModal extends Modal {
 				if (!file || !(file instanceof TFile)) return null;
 
 				const content = await this.app.vault.cachedRead(file);
-				
+
 				return {
-					content,
+					content: content,
 					score: match.score,
-					path: file.path
+					path: file.path,
+					link: `[[${file.path}]]`,
 				};
 			} catch (error) {
 				this.logger.error(`Error reading note ${match.id}:`, error);
@@ -140,18 +141,32 @@ export class ChatModal extends Modal {
 			}
 		});
 
-		const contexts = (await Promise.all(contextPromises))
-			.filter((ctx): ctx is NonNullable<typeof ctx> => ctx !== null);
+		const contexts = (await Promise.all(contextPromises)).filter(
+			(ctx): ctx is NonNullable<typeof ctx> => ctx !== null,
+		);
 
 		if (!contexts.length) {
 			return message;
 		}
 
 		const formattedContext = contexts
-			.map(ctx => `[${Math.round(ctx.score * 100)}% relevant from ${ctx.path}]:\n${ctx.content}`)
+			.map(
+				(ctx) =>
+					`[${Math.round(ctx.score * 100)}% relevant from ${ctx.link}]:\n${
+						ctx.content
+					}`,
+			)
 			.join("\n\n");
 
-		return `Context from my notes:\n\n${formattedContext}\n\nQuestion: ${message}`;
+		const sourceLinks = contexts.map((ctx) => ctx.link).join(", ");
+
+		return `Context from my notes:
+
+${formattedContext}
+
+Question: ${message}
+
+Instructions: Please reference the source notes using their links (${sourceLinks}) when they are relevant to your response. Format your response in markdown.`;
 	}
 
 	async onSendMessage(

@@ -318,8 +318,14 @@
 		overflow: scroll;
 	}
 
-	.message-content > :global(p:first-child) {
+	.message-content > :global(p:first-child),
+	.message-content > :global(h2:first-child) {
 		margin-top: 0;
+	}
+
+	.message-content :global(ul) {
+		margin-left: 0;
+		padding-left: 0;
 	}
 
 	.message-content :global(code) {
