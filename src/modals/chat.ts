@@ -162,8 +162,8 @@ export class ChatModal extends Modal {
 		this.updateComponent();
 
 		try {
-			if (!this.messages.some((msg) => msg.role === "system")) {
-				this.messages.push(this.DEFAULT_SYSTEM_MESSAGE);
+			if (!this.apiMessages.some((msg) => msg.role === "system")) {
+				this.apiMessages.push(this.DEFAULT_SYSTEM_MESSAGE);
 			}
 
 			const userMessage: Message = { role: "user", content: message };
