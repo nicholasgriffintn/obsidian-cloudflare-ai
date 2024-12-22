@@ -191,7 +191,7 @@
 				class="action-button"
 					on:click={() =>
 						copyMessageToClipboard(
-							messages.map((m) => m.content).join("\n\n"),
+							messages.map((m) => `${m.role}: ${m.content}`).join("\n\n"),
 						)}
 				>
 					Copy Conversation
