@@ -88,14 +88,11 @@ curl https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/vectorize/v2/inde
 
 ## Installation
 
-1. Clone this repository into your Obsidian plugins folder.
-    ```bash
-    cd path/to/vault/.obsidian/plugins
-    gh repo clone nicholasgriffintn/obsidian-cloudflare-ai
-    ```
-2. Run `pnpm install` and then `pnpm run build` to build the plugin.
-3. Open Obsidian and enable the plugin in the Obsidian settings.
-4. Refresh your installed plugins list.
+1. Navigate to the [Releases](https://github.com/nicholasgriffintn/obsidian-cloudflare-ai/releases) page and download the `.zip` file from the latest release. It will be named something like `cloudflare-ai-0.0.5.zip`.
+2. Navigate to your Obsidian plugins folder, such as `path/to/vault/.obsidian/plugins`.
+3. Unzip the downloaded file and move the `obsidian-cloudflare-ai` folder into the plugins folder.
+4. Open Obsidian and enable the plugin in the Obsidian settings.
+5. Refresh your installed plugins list.
 
 ## Thanks
 
