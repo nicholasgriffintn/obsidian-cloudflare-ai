@@ -1,10 +1,4 @@
-import {
-	App,
-	Notice,
-	Plugin,
-	PluginSettingTab,
-	Setting,
-} from "obsidian";
+import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 import "virtual:uno.css";
 
 import { ChatModal } from "./modals/chat";
@@ -38,7 +32,7 @@ export default class CloudflareAIPlugin extends Plugin {
 	syncService!: SyncService;
 	syncStatusBar!: HTMLElement;
 	private readonly logger: Logger = new Logger();
-	
+
 	async loadGateway() {
 		this.gateway = new CloudflareAIGateway(
 			this.settings.cloudflareAccountId,
@@ -97,29 +91,29 @@ export default class CloudflareAIPlugin extends Plugin {
 					this.app,
 					this.gateway,
 					this.vectorize,
-					this.settings
+					this.settings,
 				);
 				chatModal.open();
 			},
 		});
 
 		this.syncStatusBar = this.addStatusBarItem();
-		this.syncStatusBar.setText('Sync: Ready');
+		this.syncStatusBar.setText("Sync: Ready");
 
 		this.addCommand({
 			id: "sync-notes",
 			name: "Sync Notes",
 			callback: async () => {
 				await this.syncNotes();
-			}
+			},
 		});
 
 		if (this.settings.syncEnabled) {
 			this.registerInterval(
 				window.setInterval(
 					() => this.syncNotes(),
-					this.settings.autoSyncInterval * 60 * 1000
-				)
+					this.settings.autoSyncInterval * 60 * 1000,
+				),
 			);
 		}
 
@@ -134,7 +128,7 @@ export default class CloudflareAIPlugin extends Plugin {
 		try {
 			this.logger.debug("Syncing notes");
 
-			this.syncStatusBar.setText('Sync: In Progress...');
+			this.syncStatusBar.setText("Sync: In Progress...");
 
 			if (!this.syncService) {
 				throw new Error("Sync service not initialized");
@@ -145,13 +139,18 @@ export default class CloudflareAIPlugin extends Plugin {
 			this.settings.lastSyncTime = Date.now();
 			await this.saveSettings();
 
-			this.syncStatusBar.setText(`Sync: Complete (${new Date().toLocaleTimeString()})`);
+			this.syncStatusBar.setText(
+				`Sync: Complete (${new Date().toLocaleTimeString()})`,
+			);
 
 			this.logger.debug("Sync complete");
 		} catch (error: unknown) {
 			this.logger.error("Sync failed", error);
-			this.syncStatusBar.setText('Sync: Failed');
-			new Notice('Sync failed: ' + (error instanceof Error ? error.message : String(error)));
+			this.syncStatusBar.setText("Sync: Failed");
+			new Notice(
+				"Sync failed: " +
+					(error instanceof Error ? error.message : String(error)),
+			);
 		}
 	}
 }
@@ -369,25 +368,29 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Enable auto sync")
 			.setDesc("Automatically sync notes at regular intervals")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.syncEnabled)
-				.onChange(async (value) => {
-					this.plugin.settings.syncEnabled = value;
-					await this.plugin.saveSettings();
-				}));
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.syncEnabled)
+					.onChange(async (value) => {
+						this.plugin.settings.syncEnabled = value;
+						await this.plugin.saveSettings();
+					}),
+			);
 
 		new Setting(containerEl)
 			.setName("Sync interval")
 			.setDesc("How often to sync (in minutes)")
-			.addText(text => text
-				.setPlaceholder("30")
-				.setValue(this.plugin.settings.autoSyncInterval.toString())
-				.onChange(async (value) => {
-					const interval = parseInt(value);
-					if (interval > 0) {
-						this.plugin.settings.autoSyncInterval = interval;
-						await this.plugin.saveSettings();
-					}
-				}));
+			.addText((text) =>
+				text
+					.setPlaceholder("30")
+					.setValue(this.plugin.settings.autoSyncInterval.toString())
+					.onChange(async (value) => {
+						const interval = parseInt(value);
+						if (interval > 0) {
+							this.plugin.settings.autoSyncInterval = interval;
+							await this.plugin.saveSettings();
+						}
+					}),
+			);
 	}
 }
