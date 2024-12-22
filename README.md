@@ -24,7 +24,6 @@ https://github.com/user-attachments/assets/cea3a90e-84ec-41ed-bd2b-c8dbfd51ce7c
 - [ ] Add an image generation mode where you can insert the response into the current note.
 - [ ] Add a speech to text mode.
 - [ ] Look at adding other providers like Anthropic, OpenAI, etc.
-- [ ] Make the UI nicer where possible.
 
 ## Requirements
 
