@@ -82,56 +82,74 @@ export class CloudflareAIGateway {
 		prompt,
 		shouldStream = false,
 		type = "text",
-	}: RequestOptions): Promise<T> {
-		try {
-			this.validateConfig();
-			if (!messages && !prompt) {
-				throw new Error("Either messages or prompt is required");
-			}
-
-			const body = this.buildRequestBody({
-				modelId,
-				messages,
-				prompt,
-				shouldStream,
-				type,
-			});
-
-			const response = await request({
-				url: this.getEndpointUrl(modelId),
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${this.cloudflareAiApiKey}`,
-					"Content-Type": "application/json",
-					"cf-aig-metadata": JSON.stringify({ email: this.email }),
-				},
-				body: JSON.stringify(body),
-				throw: false,
-			});
-
-			let data: CloudflareResponse<T>;
+		maxRetries = 3
+	}: RequestOptions & { maxRetries?: number }): Promise<T> {
+		let attempt = 0;
+		while (attempt < maxRetries) {
 			try {
-				data = JSON.parse(response);
+				this.validateConfig();
+				if (!messages && !prompt) {
+					throw new Error("Either messages or prompt is required");
+				}
+
+				const body = this.buildRequestBody({
+					modelId,
+					messages,
+					prompt,
+					shouldStream,
+					type,
+				});
+
+				const response = await request({
+					url: this.getEndpointUrl(modelId),
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${this.cloudflareAiApiKey}`,
+						"Content-Type": "application/json",
+						"cf-aig-metadata": JSON.stringify({ email: this.email }),
+					},
+					body: JSON.stringify(body),
+					throw: false,
+				});
+
+				let data: CloudflareResponse<T>;
+				try {
+					data = JSON.parse(response);
+				} catch (error) {
+					if (attempt < maxRetries - 1) {
+						this.logger.warn(`Retry ${attempt + 1}/${maxRetries} due to invalid JSON`);
+						await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+						attempt++;
+						continue;
+					}
+					throw new Error("Invalid JSON response from AI Gateway");
+				}
+
+				if (!data?.success) {
+					const errorMsg = data.errors?.map((error) => error.message).join(", ") ?? "Unknown error from AI Gateway";
+					if (errorMsg.includes("rate limit") && attempt < maxRetries - 1) {
+						this.logger.warn(`Retry ${attempt + 1}/${maxRetries} due to rate limit`);
+						await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+						attempt++;
+						continue;
+					}
+					throw new Error(errorMsg);
+				}
+
+				if (!data.result) {
+					throw new Error("No result from AI Gateway");
+				}
+
+				return data.result;
 			} catch (error) {
-				throw new Error("Invalid JSON response from AI Gateway");
+				if (attempt === maxRetries - 1) {
+					this.displayError(error);
+					throw error;
+				}
+				attempt++;
 			}
-
-			if (!data?.success) {
-				throw new Error(
-					data.errors?.map((error) => error.message).join(", ") ??
-						"Unknown error from AI Gateway",
-				);
-			}
-
-			if (!data.result) {
-				throw new Error("No result returned from AI Gateway");
-			}
-
-			return data.result;
-		} catch (error) {
-			this.displayError(error);
-			throw error;
 		}
+		throw new Error("Max retries exceeded");
 	}
 
 	async generateText(
