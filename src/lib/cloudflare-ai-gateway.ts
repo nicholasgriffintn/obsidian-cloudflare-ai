@@ -147,8 +147,15 @@ export class CloudflareAIGateway {
 				type: "text",
 			});
 
+			if (!response || !response.response) {
+				throw new Error("Invalid response from AI Gateway");
+			}
+
 			return response.response;
 		} catch (error) {
+			if (error instanceof Error) {
+				this.logger.error(`Text generation failed: ${error.message}`);
+			}
 			this.displayError(error);
 			throw error;
 		}

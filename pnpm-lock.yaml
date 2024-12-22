@@ -20,6 +20,9 @@ importers:
       '@types/node':
         specifier: ^20.17.10
         version: 20.17.10
+      '@types/semver':
+        specifier: ^7.5.8
+        version: 7.5.8
       '@unocss/extractor-svelte':
         specifier: ^0.57.2
         version: 0.57.7
@@ -32,6 +35,9 @@ importers:
       obsidian:
         specifier: ^1.4.11
         version: 1.7.2(@codemirror/state@6.5.0)(@codemirror/view@6.36.1)
+      semver:
+        specifier: ^7.6.3
+        version: 7.6.3
       svelte:
         specifier: ^4.2.2
         version: 4.2.19
@@ -546,6 +552,9 @@ packages:
   '@types/pug@2.0.10':
     resolution: {integrity: sha512-Sk/uYFOBAB7mb74XcpizmH0KOR2Pv3D2Hmrh1Dmy5BmK3MpdSa5kqZcg6EKBdklU0bFXX9gCfzvpnyUehrPIuA==}
 
+  '@types/semver@7.5.8':
+    resolution: {integrity: sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==}
+
   '@types/tern@0.23.9':
     resolution: {integrity: sha512-ypzHFE/wBzh+BlH6rrBgS5I/Z7RD21pGhZ2rltb/+ZrVM1awdZwjx7hE5XfuYgHWk9uvV5HLZN3SloevCAp3Bw==}
 
@@ -1019,6 +1028,11 @@ packages:
 
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
+    hasBin: true
+
+  semver@7.6.3:
+    resolution: {integrity: sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==}
+    engines: {node: '>=10'}
     hasBin: true
 
   sirv@2.0.4:
@@ -1642,6 +1656,8 @@ snapshots:
 
   '@types/pug@2.0.10': {}
 
+  '@types/semver@7.5.8': {}
+
   '@types/tern@0.23.9':
     dependencies:
       '@types/estree': 1.0.6
@@ -2182,6 +2198,8 @@ snapshots:
       rimraf: 2.7.1
 
   semver@6.3.1: {}
+
+  semver@7.6.3: {}
 
   sirv@2.0.4:
     dependencies:

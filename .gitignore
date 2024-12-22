@@ -95,3 +95,5 @@ test-vault/.obsidian/workspace.json
 test-vault/.obsidian/plugins/obsidian-cloudflare-ai/*.css
 test-vault/.obsidian/plugins/obsidian-cloudflare-ai/*.js
 test-vault/.obsidian/plugins/obsidian-cloudflare-ai/*.json
+
+public/*.backup

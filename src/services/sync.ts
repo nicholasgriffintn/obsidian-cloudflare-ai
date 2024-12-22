@@ -51,9 +51,7 @@ export class SyncService {
 
 		for (let i = 0; i < filesToSync.length; i += this.batchSize) {
 			const batch = filesToSync.slice(i, i + this.batchSize);
-			await Promise.allSettled(
-				batch.map((file) => this.syncFile(file, result)),
-			);
+			await this.processBatch(batch, result, i / this.batchSize + 1, Math.ceil(filesToSync.length / this.batchSize));
 		}
 
 		this.logger.info("Sync completed", result);
@@ -232,5 +230,26 @@ export class SyncService {
 		}
 
 		return null;
+	}
+
+	private async processBatch(
+		batch: TFile[],
+		result: SyncResult,
+		currentBatch: number,
+		totalBatches: number
+	): Promise<void> {
+		this.logger.info(`Processing batch ${currentBatch}/${totalBatches}`);
+		
+		const batchResults = await Promise.allSettled(
+			batch.map((file) => this.syncFile(file, result))
+		);
+		
+		batchResults.forEach((batchResult, index) => {
+			if (batchResult.status === 'rejected') {
+				this.logger.error(
+					`Failed to sync file ${batch[index].path}: ${batchResult.reason}`
+				);
+			}
+		});
 	}
 }

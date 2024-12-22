@@ -1,18 +1,35 @@
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, copyFileSync } from "fs";
+import semver from "semver";
 
 const targetVersion = process.env.npm_package_version;
 
-if (!targetVersion) {
-	throw new Error("No target version found");
+if (!targetVersion || !semver.valid(targetVersion)) {
+	throw new Error(`Invalid version format: ${targetVersion}`);
 }
 
-// read minAppVersion from manifest.json and bump version to target version
-let manifest = JSON.parse(readFileSync("public/manifest.json", "utf8"));
-const { minAppVersion } = manifest;
-manifest.version = targetVersion;
-writeFileSync("public/manifest.json", JSON.stringify(manifest, null, "\t"));
+function updateVersionFile(filePath: string, updater: (data: any) => any) {
+	const backupPath = `${filePath}.backup`;
+	copyFileSync(filePath, backupPath);
+	
+	try {
+		const data = JSON.parse(readFileSync(filePath, "utf8"));
+		const updated = updater(data);
+		writeFileSync(filePath, JSON.stringify(updated, null, "\t"));
+		return updated;
+	} catch (error) {
+		copyFileSync(backupPath, filePath);
+		throw error;
+	}
+}
 
-// update versions.json with target version and minAppVersion from manifest.json
-let versions = JSON.parse(readFileSync("public/versions.json", "utf8"));
-versions[targetVersion] = minAppVersion;
-writeFileSync("public/versions.json", JSON.stringify(versions, null, "\t"));
+const manifest = updateVersionFile("public/manifest.json", (manifest) => {
+	manifest.version = targetVersion;
+	return manifest;
+});
+
+updateVersionFile("public/versions.json", (versions) => {
+	versions[targetVersion] = manifest.minAppVersion;
+	return versions;
+});
+
+console.log(`Successfully bumped version to ${targetVersion} 🦍`);
