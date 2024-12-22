@@ -1,4 +1,4 @@
-import { Notice, Plugin } from "obsidian";
+import { Notice, Plugin, TFile } from "obsidian";
 import "virtual:uno.css";
 import { CloudflareAISettingsTab } from "./settings";
 
@@ -117,6 +117,28 @@ export default class CloudflareAIPlugin extends Plugin {
         });
 
         this.setupSyncInterval();
+
+        this.registerEvent(
+            this.app.metadataCache.on('deleted', async (file) => {
+                try {
+                    if (file instanceof TFile && file.extension === 'md') {
+                        const vectorId = this.syncService.createVectorId(file.name);
+                        await this.vectorize.deleteVectorsByIds([vectorId]);
+                        
+                        const syncPath = `.cloudflare-ai/sync/${vectorId}.json`;
+                        if (await this.app.vault.adapter.exists(syncPath)) {
+                            await this.app.vault.adapter.remove(syncPath);
+                        }
+
+						new Notice(`Deleted file ${file.path} from the vector index`);
+                    }
+                } catch (error) {
+                    this.logger.error("Failed to remove deleted file from vector index:", error);
+					new Notice(`Failed to remove deleted file ${file.path} from the vector index: ${error instanceof Error ? error.message : String(error)}`);
+                }
+            })
+        );
+
         this.addSettingTab(new CloudflareAISettingsTab(this.app, this));
     }
 

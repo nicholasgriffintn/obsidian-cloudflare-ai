@@ -30,6 +30,8 @@ export class SyncService {
 		const files = this.app.vault.getMarkdownFiles();
 		const filteredFiles = files.filter(
 			(file) => !this.isFileInIgnoredFolder(file),
+		).filter(
+			(file) => file.extension === 'md',
 		);
 
 		const filesToSync = [];

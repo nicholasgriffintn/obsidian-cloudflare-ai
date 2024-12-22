@@ -11,7 +11,7 @@ import { Logger } from "./logger";
 const BASE_CLOUDFLARE_API_URL =
 	"https://api.cloudflare.com/client/v4/accounts/";
 
-type RequestType = "upsert" | "query";
+type RequestType = "ndjson" | "json";
 
 export class CloudflareVectorize {
 	private static readonly RETRY_DELAY_MS = 1000;
@@ -43,11 +43,11 @@ export class CloudflareVectorize {
 	}
 
 	private getContentType(type: RequestType): string {
-		return type === "query" ? "application/json" : "application/x-ndjson";
+		return type === "json" ? "application/json" : "application/x-ndjson";
 	}
 
 	private formatRequestBody(body: any, type: RequestType): string {
-		if (type === "query") {
+		if (type === "json") {
 			return JSON.stringify(body);
 		}
 		return body.map((item: any) => JSON.stringify(item)).join("\n");
@@ -143,7 +143,7 @@ export class CloudflareVectorize {
 				"POST",
 				formattedVectors,
 				3,
-				"upsert",
+				"ndjson",
 			);
 
 			return Boolean(result?.mutationId);
@@ -161,11 +161,30 @@ export class CloudflareVectorize {
 				"POST",
 				query,
 				1,
-				"query",
+				"json",
 			);
 		} catch (error) {
 			this.displayError(`Failed to query vectors: ${error}`);
 			return null;
+		}
+	}
+
+	async deleteVectorsByIds(ids: string[]): Promise<boolean> {
+		try {
+			this.validateConfig();
+			
+			const result = await this.makeRequest<{ mutationId: string }>(
+				`indexes/${this.indexName}/delete_by_ids`,
+				"POST",
+				{ ids },
+				3,
+				"json"
+			);
+
+			return Boolean(result?.mutationId);
+		} catch (error) {
+			this.displayError(`Failed to delete vectors: ${error}`);
+			return false;
 		}
 	}
 }
