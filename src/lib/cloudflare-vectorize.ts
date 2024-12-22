@@ -5,6 +5,11 @@ import type {
 	VectorQuery,
 	VectorSearchResult,
 	CloudflareResponse,
+	FilterOperator,
+	FilterValue,
+	FilterCondition,
+	VectorizeFilter,
+	VectorizeMetadataField,
 } from "../types";
 import { Logger } from "./logger";
 
@@ -156,6 +161,8 @@ export class CloudflareVectorize {
 	async queryVectors(query: VectorQuery): Promise<VectorSearchResult | null> {
 		try {
 			this.validateConfig();
+			this.validateFilter(query.filter);
+
 			return await this.makeRequest<VectorSearchResult>(
 				`indexes/${this.indexName}/query`,
 				"POST",
@@ -169,16 +176,71 @@ export class CloudflareVectorize {
 		}
 	}
 
+	private validateFilter(filter?: VectorizeFilter): void {
+		if (!filter) {
+			return;
+		}
+
+		const allowedFields: VectorizeMetadataField[] = [
+			"type",
+			"createdMonth",
+			"createdYear",
+			"modifiedMonth",
+			"modifiedYear",
+			"extension",
+		];
+
+		const allowedOperators: FilterOperator[] = [
+			"$eq",
+			"$ne",
+			"$in",
+			"$nin",
+			"$lt",
+			"$lte",
+			"$gt",
+			"$gte",
+		];
+
+		for (const [field, condition] of Object.entries(filter)) {
+			if (!allowedFields.includes(field as VectorizeMetadataField)) {
+				throw new Error(`Invalid filter field: ${field}`);
+			}
+
+			if (typeof condition === "object" && condition !== null) {
+				const operators = Object.keys(condition) as FilterOperator[];
+				for (const op of operators) {
+					if (!allowedOperators.includes(op)) {
+						throw new Error(`Invalid operator: ${op}`);
+					}
+				}
+
+				const hasRangeQuery = operators.some((op) =>
+					["$lt", "$lte", "$gt", "$gte"].includes(op),
+				);
+				if (hasRangeQuery) {
+					const invalidCombination = operators.some((op) =>
+						["$eq", "$ne", "$in", "$nin"].includes(op),
+					);
+					if (invalidCombination) {
+						throw new Error(
+							"Range queries cannot be combined with other operators",
+						);
+					}
+				}
+			}
+		}
+	}
+
 	async deleteVectorsByIds(ids: string[]): Promise<boolean> {
 		try {
 			this.validateConfig();
-			
+
 			const result = await this.makeRequest<{ mutationId: string }>(
 				`indexes/${this.indexName}/delete_by_ids`,
 				"POST",
 				{ ids },
 				3,
-				"json"
+				"json",
 			);
 
 			return Boolean(result?.mutationId);

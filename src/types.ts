@@ -52,13 +52,46 @@ export interface VectorSearchResult {
 	matches: VectorMatch[];
 }
 
+export type FilterOperator =
+	| "$eq"
+	| "$ne"
+	| "$in"
+	| "$nin"
+	| "$lt"
+	| "$lte"
+	| "$gt"
+	| "$gte";
+
+export type FilterValue =
+	| string
+	| number
+	| boolean
+	| null
+	| (string | number | boolean | null)[];
+
+export type FilterCondition = {
+	[key in FilterOperator]?: FilterValue;
+};
+
+export type VectorizeFilter = {
+	[key in VectorizeMetadataField]?: FilterValue | FilterCondition;
+};
+
+export type VectorizeMetadataField =
+	| "type"
+	| "createdMonth"
+	| "createdYear"
+	| "modifiedMonth"
+	| "modifiedYear"
+	| "extension";
+
 export interface VectorQuery {
 	vector: number[];
 	topK?: number;
 	returnValues?: boolean;
 	returnMetadata?: "all" | "none" | "indexed";
 	namespace?: string;
-	filter?: Record<string, any>;
+	filter?: VectorizeFilter;
 }
 
 export interface VectorizeResponse

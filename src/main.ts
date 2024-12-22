@@ -12,168 +12,185 @@ import { DEFAULT_SETTINGS } from "./constants";
 import { safeStorage } from "./lib/safeStorage";
 
 export default class CloudflareAIPlugin extends Plugin {
-    public settings!: CloudflareAIPluginSettings;
-    private gateway!: CloudflareAIGateway;
-    private vectorize!: CloudflareVectorize;
-    private syncService!: SyncService;
-    private syncStatusBar!: HTMLElement;
-    private syncInterval?: number;
-    private readonly logger: Logger = new Logger();
+	public settings!: CloudflareAIPluginSettings;
+	private gateway!: CloudflareAIGateway;
+	private vectorize!: CloudflareVectorize;
+	private syncService!: SyncService;
+	private syncStatusBar!: HTMLElement;
+	private syncInterval?: number;
+	private readonly logger: Logger = new Logger();
 
-    private getDecryptedApiKey(encryptedKey: string): string {
-        if (!encryptedKey) return '';
-        
-        try {
-            if (safeStorage.isEncryptionAvailable()) {
-                return safeStorage.decryptString(Buffer.from(encryptedKey, 'base64'));
-            }
-        } catch (error) {
-            this.logger.error("Failed to decrypt API key:", error);
-        }
-        return encryptedKey;
-    }
+	private getDecryptedApiKey(encryptedKey: string): string {
+		if (!encryptedKey) return "";
 
-    private async initializeServices(): Promise<void> {
-        const decryptedAiApiKey = this.getDecryptedApiKey(this.settings.cloudflareAiApiKey);
-        const decryptedVectorizeApiKey = this.getDecryptedApiKey(this.settings.cloudflareVectorizeApiKey);
-        
-        this.gateway = new CloudflareAIGateway(
-            this.settings.cloudflareAccountId,
-            this.settings.cloudflareAiGatewayId,
-            decryptedAiApiKey,
-            this.settings.modelId,
-            this.settings.maxTokens,
-            this.settings.temperature,
-        );
+		try {
+			if (safeStorage.isEncryptionAvailable()) {
+				return safeStorage.decryptString(Buffer.from(encryptedKey, "base64"));
+			}
+		} catch (error) {
+			this.logger.error("Failed to decrypt API key:", error);
+		}
+		return encryptedKey;
+	}
 
-        this.vectorize = new CloudflareVectorize(
-            this.settings.cloudflareAccountId,
-            decryptedVectorizeApiKey,
-            this.settings.vectorizeIndexName,
-        );
+	private async initializeServices(): Promise<void> {
+		const decryptedAiApiKey = this.getDecryptedApiKey(
+			this.settings.cloudflareAiApiKey,
+		);
+		const decryptedVectorizeApiKey = this.getDecryptedApiKey(
+			this.settings.cloudflareVectorizeApiKey,
+		);
 
-        this.syncService = new SyncService(
-            this.app,
-            this.vectorize,
-            this.gateway,
-            this.settings.textEmbeddingsModelId,
-            this.settings.ignoredFolders,
-        );
-    }
+		this.gateway = new CloudflareAIGateway(
+			this.settings.cloudflareAccountId,
+			this.settings.cloudflareAiGatewayId,
+			decryptedAiApiKey,
+			this.settings.modelId,
+			this.settings.maxTokens,
+			this.settings.temperature,
+		);
 
-    private setupSyncInterval(): void {
-        if (this.syncInterval) {
-            window.clearInterval(this.syncInterval);
-        }
+		this.vectorize = new CloudflareVectorize(
+			this.settings.cloudflareAccountId,
+			decryptedVectorizeApiKey,
+			this.settings.vectorizeIndexName,
+		);
 
-        if (this.settings.syncEnabled) {
-            this.syncInterval = window.setInterval(
-                () => this.syncNotes(),
-                this.settings.autoSyncInterval * 60 * 1000,
-            );
-            this.registerInterval(this.syncInterval);
-        }
-    }
+		this.syncService = new SyncService(
+			this.app,
+			this.vectorize,
+			this.gateway,
+			this.settings.textEmbeddingsModelId,
+			this.settings.ignoredFolders,
+		);
+	}
 
-    async loadSettings(): Promise<void> {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-        await this.initializeServices();
-        this.logger.debug("Settings loaded");
-    }
+	private setupSyncInterval(): void {
+		if (this.syncInterval) {
+			window.clearInterval(this.syncInterval);
+		}
 
-    async saveSettings(): Promise<void> {
-        await this.saveData(this.settings);
-        await this.initializeServices();
-        this.setupSyncInterval();
-        this.logger.debug("Settings saved");
-    }
+		if (this.settings.syncEnabled) {
+			this.syncInterval = window.setInterval(
+				() => this.syncNotes(),
+				this.settings.autoSyncInterval * 60 * 1000,
+			);
+			this.registerInterval(this.syncInterval);
+		}
+	}
 
-    async onload(): Promise<void> {
-        this.logger.debug("CloudflareAIPlugin loaded");
+	async loadSettings(): Promise<void> {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		await this.initializeServices();
+		this.logger.debug("Settings loaded");
+	}
 
-        await this.loadSettings();
+	async saveSettings(): Promise<void> {
+		await this.saveData(this.settings);
+		await this.initializeServices();
+		this.setupSyncInterval();
+		this.logger.debug("Settings saved");
+	}
 
-        this.addCommand({
-            id: "start-chat",
-            name: "Start Chat",
-            callback: () => {
-                new ChatModal(
-                    this.app,
-                    this.gateway,
-                    this.vectorize,
-                    this.settings,
-                    this.syncService,
-                ).open();
-            },
-        });
+	async onload(): Promise<void> {
+		this.logger.debug("CloudflareAIPlugin loaded");
 
-        this.syncStatusBar = this.addStatusBarItem();
-        this.updateSyncStatus("Ready");
+		await this.loadSettings();
 
-        this.addCommand({
-            id: "sync-notes",
-            name: "Sync Notes",
-            callback: () => this.syncNotes(),
-        });
+		this.addCommand({
+			id: "start-chat",
+			name: "Start Chat",
+			callback: () => {
+				new ChatModal(
+					this.app,
+					this.gateway,
+					this.vectorize,
+					this.settings,
+					this.syncService,
+				).open();
+			},
+		});
 
-        this.setupSyncInterval();
+		this.syncStatusBar = this.addStatusBarItem();
+		this.updateSyncStatus("Ready");
 
-        this.registerEvent(
-            this.app.metadataCache.on('deleted', async (file) => {
-                try {
-                    if (file instanceof TFile && file.extension === 'md') {
-                        const vectorId = this.syncService.createVectorId(file.name);
-                        await this.vectorize.deleteVectorsByIds([vectorId]);
-                        
-                        const syncPath = `.cloudflare-ai/sync/${vectorId}.json`;
-                        if (await this.app.vault.adapter.exists(syncPath)) {
-                            await this.app.vault.adapter.remove(syncPath);
-                        }
+		this.addCommand({
+			id: "sync-notes",
+			name: "Sync Notes",
+			callback: () => this.syncNotes(),
+		});
+
+		this.setupSyncInterval();
+
+		this.registerEvent(
+			this.app.metadataCache.on("deleted", async (file) => {
+				try {
+					if (file instanceof TFile && file.extension === "md") {
+						const vectorId = this.syncService.createVectorId(file.name);
+						await this.vectorize.deleteVectorsByIds([vectorId]);
+
+						const syncPath = `.cloudflare-ai/sync/${vectorId}.json`;
+						if (await this.app.vault.adapter.exists(syncPath)) {
+							await this.app.vault.adapter.remove(syncPath);
+						}
 
 						new Notice(`Deleted file ${file.path} from the vector index`);
-                    }
-                } catch (error) {
-                    this.logger.error("Failed to remove deleted file from vector index:", error);
-					new Notice(`Failed to remove deleted file ${file.path} from the vector index: ${error instanceof Error ? error.message : String(error)}`);
-                }
-            })
-        );
+					}
+				} catch (error) {
+					this.logger.error(
+						"Failed to remove deleted file from vector index:",
+						error,
+					);
+					new Notice(
+						`Failed to remove deleted file ${
+							file.path
+						} from the vector index: ${
+							error instanceof Error ? error.message : String(error)
+						}`,
+					);
+				}
+			}),
+		);
 
-        this.addSettingTab(new CloudflareAISettingsTab(this.app, this));
-    }
+		this.addSettingTab(new CloudflareAISettingsTab(this.app, this));
+	}
 
-    onunload(): void {
-        if (this.syncInterval) {
-            window.clearInterval(this.syncInterval);
-        }
-        this.logger.debug("CloudflareAIPlugin unloaded");
-    }
+	onunload(): void {
+		if (this.syncInterval) {
+			window.clearInterval(this.syncInterval);
+		}
+		this.logger.debug("CloudflareAIPlugin unloaded");
+	}
 
-    private updateSyncStatus(status: string): void {
-        this.syncStatusBar.setText(`AI Sync: ${status}`);
-    }
+	private updateSyncStatus(status: string): void {
+		this.syncStatusBar.setText(`AI Sync: ${status}`);
+	}
 
-    async syncNotes(): Promise<void> {
-        try {
-            this.logger.debug("Syncing notes");
-            this.updateSyncStatus("In Progress...");
+	async syncNotes(): Promise<void> {
+		try {
+			this.logger.debug("Syncing notes");
+			this.updateSyncStatus("In Progress...");
 
-            if (!this.syncService) {
-                throw new Error("Sync service not initialized");
-            }
+			if (!this.syncService) {
+				throw new Error("Sync service not initialized");
+			}
 
-            await this.syncService.sync();
+			await this.syncService.sync();
 
-            this.settings.lastSyncTime = Date.now();
-            await this.saveSettings();
+			this.settings.lastSyncTime = Date.now();
+			await this.saveSettings();
 
-            const timestamp = new Date().toLocaleTimeString();
-            this.updateSyncStatus(`Complete (${timestamp})`);
-            this.logger.debug("Sync complete");
-        } catch (error: unknown) {
-            this.logger.error("Sync failed", error);
-            this.updateSyncStatus("Failed");
-            new Notice(`Sync failed: ${error instanceof Error ? error.message : String(error)}`);
-        }
-    }
+			const timestamp = new Date().toLocaleTimeString();
+			this.updateSyncStatus(`Complete (${timestamp})`);
+			this.logger.debug("Sync complete");
+		} catch (error: unknown) {
+			this.logger.error("Sync failed", error);
+			this.updateSyncStatus("Failed");
+			new Notice(
+				`Sync failed: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			);
+		}
+	}
 }

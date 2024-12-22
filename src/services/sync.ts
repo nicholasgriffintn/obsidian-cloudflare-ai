@@ -28,15 +28,13 @@ export class SyncService {
 		this.validateServices();
 
 		const files = this.app.vault.getMarkdownFiles();
-		const filteredFiles = files.filter(
-			(file) => !this.isFileInIgnoredFolder(file),
-		).filter(
-			(file) => file.extension === 'md',
-		);
+		const filteredFiles = files
+			.filter((file) => !this.isFileInIgnoredFolder(file))
+			.filter((file) => file.extension === "md");
 
 		const filesToSync = [];
 		for (const file of filteredFiles) {
-            const vectorId = this.createVectorId(file.name);
+			const vectorId = this.createVectorId(file.name);
 			const syncState = await this.getSyncState(vectorId);
 			if (!syncState || syncState.lastModified !== file.stat.mtime) {
 				filesToSync.push(file);
@@ -62,9 +60,9 @@ export class SyncService {
 		return result;
 	}
 
-    public createVectorId(path: string): string {
-        return btoa(path.slice(0, 32));
-    }
+	public createVectorId(path: string): string {
+		return btoa(path.slice(0, 32));
+	}
 
 	private isFileInIgnoredFolder(file: TFile): boolean {
 		return this.ignoredFolders.some((folder) => {
@@ -93,7 +91,7 @@ export class SyncService {
 				return;
 			}
 
-            const vectorId = this.createVectorId(file.name);
+			const vectorId = this.createVectorId(file.name);
 			const syncState = await this.getSyncState(vectorId);
 			if (syncState && syncState.lastModified === file.stat.mtime) {
 				this.logger.debug(`File ${file.path} hasn't changed, skipping`);
@@ -106,7 +104,7 @@ export class SyncService {
 				this.logger.warn(`Skipping file ${file.path} due to no vectors`);
 				return;
 			}
-            const metadata = this.getMetadata(file);
+			const metadata = this.getMetadata(file);
 			await this.upsertVectors(vectorId, vectors, metadata);
 			await this.saveSyncState(vectorId, file, vectors, metadata);
 
@@ -141,8 +139,8 @@ export class SyncService {
 		return vectors.data;
 	}
 
-    private getMetadata(file: TFile): Record<string, any> {
-        const metadata: Record<string, any> = {
+	private getMetadata(file: TFile): Record<string, any> {
+		const metadata: Record<string, any> = {
 			fileName: file.name,
 			extension: file.extension,
 		};
@@ -164,7 +162,11 @@ export class SyncService {
 		return metadata;
 	}
 
-	private async upsertVectors(id: string, vectors: number[][], metadata: Record<string, any>): Promise<void> {
+	private async upsertVectors(
+		id: string,
+		vectors: number[][],
+		metadata: Record<string, any>,
+	): Promise<void> {
 		const upsertResult = await this.vectorize.upsertVectors([
 			{
 				id,
@@ -186,7 +188,12 @@ export class SyncService {
 		}
 	}
 
-	private async saveSyncState(id: string, file: TFile, vectors: number[][], metadata: Record<string, any>): Promise<void> {
+	private async saveSyncState(
+		id: string,
+		file: TFile,
+		vectors: number[][],
+		metadata: Record<string, any>,
+	): Promise<void> {
 		const syncState = {
 			id,
 			path: file.path,

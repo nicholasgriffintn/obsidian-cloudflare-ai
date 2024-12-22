@@ -9,6 +9,7 @@ import type {
 	VectorSearchResult,
 	VectorMatch,
 	CloudflareAIPluginSettings,
+	VectorizeFilter,
 } from "../types";
 import { Logger } from "../lib/logger";
 import { SyncService } from "../services/sync";
@@ -31,13 +32,13 @@ export class ChatModal extends Modal {
 		private readonly gateway: CloudflareAIGateway,
 		private readonly vectorize: CloudflareVectorize,
 		private readonly settings: CloudflareAIPluginSettings,
-        private readonly sync: SyncService,
+		private readonly sync: SyncService,
 	) {
 		super(app);
 		this.settings = settings;
 		this.validateServices();
 		this.logger = new Logger();
-        this.sync = sync;
+		this.sync = sync;
 	}
 
 	private validateServices(): void {
@@ -79,6 +80,7 @@ export class ChatModal extends Modal {
 
 	private async searchSimilarNotes(
 		vector: number[],
+		filters: VectorizeFilter,
 	): Promise<VectorSearchResult | null> {
 		try {
 			if (!vector) {
@@ -89,6 +91,7 @@ export class ChatModal extends Modal {
 				vector,
 				topK: this.settings.topK,
 				namespace: this.app.vault.getName(),
+				filter: filters,
 			});
 		} catch (error) {
 			this.logger.error("Error searching vectors:", error);
@@ -145,7 +148,10 @@ export class ChatModal extends Modal {
 		return `Context from my notes:\n\n${context}\n\nQuestion: ${message}`;
 	}
 
-	async onSendMessage(message: string): Promise<void> {
+	async onSendMessage(
+		message: string,
+		filters: VectorizeFilter,
+	): Promise<void> {
 		if (!message.trim()) return;
 
 		this.isProcessing = true;
@@ -162,7 +168,7 @@ export class ChatModal extends Modal {
 
 			const embedding = await this.generateEmbedding(message);
 			const searchResults = embedding
-				? await this.searchSimilarNotes(embedding)
+				? await this.searchSimilarNotes(embedding, filters)
 				: null;
 
 			const messageWithContext = await this.enrichMessageWithContext(
@@ -208,7 +214,8 @@ export class ChatModal extends Modal {
 			props: {
 				messages: this.messages,
 				isProcessing: this.isProcessing,
-				onSendMessage: (message: string) => this.onSendMessage(message),
+				onSendMessage: (message: string, filters: VectorizeFilter) =>
+					this.onSendMessage(message, filters),
 				onClearMessages: () => this.onClearMessages(),
 				onCopyConversation: (content: string) =>
 					this.onCopyConversation(content),
