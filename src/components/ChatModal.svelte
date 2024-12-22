@@ -432,26 +432,4 @@
 	.filter-row label {
 		min-width: 100px;
 	}
-
-	.filter-menu {
-		position: relative;
-		margin-right: 0.5rem;
-	}
-
-	.filter-menu summary {
-		cursor: pointer;
-		padding: 0.5rem;
-		background: var(--background-modifier-border);
-		border-radius: 4px;
-	}
-
-	.filter-menu .filters {
-		background: var(--background-primary);
-		border: 1px solid var(--background-modifier-border);
-		border-radius: 4px;
-		padding: 1rem;
-		margin-bottom: 0.5rem;
-		min-width: 200px;
-		z-index: 100;
-	}
 </style>

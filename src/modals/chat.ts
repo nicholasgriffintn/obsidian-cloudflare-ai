@@ -13,6 +13,7 @@ import type {
 } from "../types";
 import { Logger } from "../lib/logger";
 import { SyncService } from "../services/sync";
+
 export class ChatModal extends Modal {
 	private readonly DEFAULT_SYSTEM_MESSAGE: Message = {
 		role: "system",
@@ -23,7 +24,7 @@ export class ChatModal extends Modal {
 
 	private messages: Message[] = [];
 	private apiMessages: Message[] = [];
-	private component: typeof ChatModalComponent | null = null;
+	private component: SvelteComponent | null = null;
 	private readonly svelteComponents: SvelteComponent[] = [];
 	private isProcessing = false;
 	private readonly logger: Logger;
@@ -55,10 +56,12 @@ export class ChatModal extends Modal {
 	}
 
 	private updateComponent(): void {
-		this.component?.$set({
-			messages: [...this.messages],
-			isProcessing: this.isProcessing,
-		});
+		if (this.component) {
+			this.component.$set({
+				messages: [...this.messages],
+				isProcessing: this.isProcessing,
+			});
+		}
 	}
 
 	private async generateEmbedding(text: string): Promise<number[] | null> {
@@ -210,7 +213,7 @@ export class ChatModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("chat-modal");
 
-		this.component = new ChatModalComponent({
+		const component = new ChatModalComponent({
 			target: contentEl,
 			props: {
 				messages: this.messages,
@@ -223,7 +226,8 @@ export class ChatModal extends Modal {
 			},
 		});
 
-		this.svelteComponents.push(this.component);
+		this.component = component;
+		this.svelteComponents.push(component);
 	}
 
 	async onClearMessages(): Promise<void> {
