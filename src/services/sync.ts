@@ -1,7 +1,7 @@
 import { App, TFile } from "obsidian";
 import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
 import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
-import type { SyncResult, EmbeddingResponse } from "../types";
+import type { SyncResult } from "../types";
 
 export class SyncService {
     private readonly batchSize = 5;
@@ -12,8 +12,17 @@ export class SyncService {
         private readonly vectorize: CloudflareVectorize,
         private readonly gateway: CloudflareAIGateway,
         private readonly textEmbeddingsModelId: string,
+        private readonly ignoredFolders: string[] = [],
     ) {
         this.logger = console;
+    }
+
+    private isFileInIgnoredFolder(file: TFile): boolean {
+        return this.ignoredFolders.some(folder => {
+            const normalizedFolder = folder.toLowerCase().replace(/\\/g, '/');
+            const normalizedFile = file.path.toLowerCase().replace(/\\/g, '/');
+            return normalizedFile.startsWith(normalizedFolder + '/')
+        });
     }
 
     async sync(): Promise<SyncResult> {
@@ -26,10 +35,11 @@ export class SyncService {
         this.validateServices();
 
         const files = this.app.vault.getMarkdownFiles();
-        this.logger.info(`Starting sync for ${files.length} files`);
+        const filteredFiles = files.filter(file => !this.isFileInIgnoredFolder(file));
+        this.logger.info(`Starting sync for ${filteredFiles.length} files`);
 
-        for (let i = 0; i < files.length; i += this.batchSize) {
-            const batch = files.slice(i, i + this.batchSize);
+        for (let i = 0; i < filteredFiles.length; i += this.batchSize) {
+            const batch = filteredFiles.slice(i, i + this.batchSize);
             await Promise.allSettled(
                 batch.map(file => this.syncFile(file, result))
             );

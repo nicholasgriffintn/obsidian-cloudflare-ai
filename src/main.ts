@@ -22,6 +22,7 @@ interface CloudflareAIPluginSettings {
 	temperature: number;
 	textEmbeddingsModelId: string;
 	vectorizeIndexName: string;
+	ignoredFolders: string[];
 	syncEnabled: boolean;
 	autoSyncInterval: number;
 	lastSyncTime?: number;
@@ -37,6 +38,7 @@ const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	temperature: 0.6,
 	textEmbeddingsModelId: "@cf/baai/bge-base-en-v1.5",
 	vectorizeIndexName: "obsidian-notes",
+	ignoredFolders: [],
 	syncEnabled: false,
 	autoSyncInterval: 30,
 };
@@ -72,7 +74,8 @@ export default class CloudflareAIPlugin extends Plugin {
 			this.app,
 			this.vectorize,
 			this.gateway,
-			this.settings.textEmbeddingsModelId
+			this.settings.textEmbeddingsModelId,
+			this.settings.ignoredFolders,
 		);
 	}
 
@@ -320,8 +323,21 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		containerEl.createEl("h3", { text: "Auto Sync Settings" });
+		containerEl.createEl("h3", { text: "Sync Settings" });
 		containerEl.createEl("p", { text: "Sync notes to Cloudflare Vectorize for RAG at regular intervals." });
+
+		new Setting(containerEl)
+			.setName("Ignored Folders")
+			.setDesc("Folders to ignore when syncing notes, separated by commas")
+			.addText((text) =>
+				text
+					.setPlaceholder("Enter the folders to ignore")
+					.setValue(this.plugin.settings.ignoredFolders.join(","))
+					.onChange(async (value) => {
+						this.plugin.settings.ignoredFolders = value.split(",");
+						await this.plugin.saveSettings();
+					}),
+			);
 
 		new Setting(containerEl)
 			.setName("Enable Auto Sync")

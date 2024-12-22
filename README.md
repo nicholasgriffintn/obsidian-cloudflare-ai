@@ -7,6 +7,7 @@ A plugin for Obsidian that adds an AI assistant with RAG functionality via Cloud
 - 🤖 Chat with AI through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) using their provided [Models](https://developers.cloudflare.com/workers-ai/models/).
 - 📝 Sync your Obsidian notes to a [Cloudflare Vectorize](https://developers.cloudflare.com/vectorize/) index.
 - 🔄 Auto-sync your Obsidian notes to the Vectorize index at a set interval.
+  - You can also ignore folders if you don't want to sync them.
 
 This is currently a work in progress, however, for now, here's a quick preview of the chat with a response that uses matching notes for context:
 

@@ -1,0 +1,1 @@
+This note is secret! I don't want AI to see it.
