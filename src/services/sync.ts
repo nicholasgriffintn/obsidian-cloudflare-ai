@@ -118,9 +118,51 @@ export class SyncService {
 		}
 	}
 
-	private async generateEmbeddings(
-		content: string,
-	): Promise<number[][] | null> {
+	private async generateEmbeddings(content: string): Promise<number[][] | null> {
+		const maxChunkSize = 8192;
+		
+		if (content.length > maxChunkSize) {
+			this.logger.debug(`Content too large (${content.length}), chunking...`);
+			const chunks = content.match(/[^.!?]+[.!?]+/g) || [content];
+			let currentChunk = '';
+			const allVectors: number[][] = [];
+			
+			for (const sentence of chunks) {
+				if ((currentChunk + sentence).length > maxChunkSize) {
+					const vectors = await this.gateway.makeRequest<{
+						data: number[][];
+					}>({
+						modelId: this.textEmbeddingsModelId,
+						prompt: currentChunk,
+						shouldStream: false,
+						type: "embedding",
+					});
+					if (vectors?.data?.length) {
+						allVectors.push(...vectors.data);
+					}
+					currentChunk = sentence;
+				} else {
+					currentChunk += sentence;
+				}
+			}
+			
+			if (currentChunk) {
+				const vectors = await this.gateway.makeRequest<{
+					data: number[][];
+				}>({
+					modelId: this.textEmbeddingsModelId,
+					prompt: currentChunk,
+					shouldStream: false,
+					type: "embedding",
+				});
+				if (vectors?.data?.length) {
+					allVectors.push(...vectors.data);
+				}
+			}
+			
+			return allVectors;
+		}
+
 		const vectors = await this.gateway.makeRequest<{
 			data: number[][];
 		}>({

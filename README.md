@@ -9,6 +9,7 @@ A plugin for Obsidian that adds an AI assistant with RAG functionality via Cloud
   - You can also ignore folders if you don't want to sync them.
   - State is saved in the `.cloudflare-ai/sync` folder, this ensures that we don't sync the same note multiple times.
   - Deleting a note from Obsidian will also delete it from the Vectorize index.
+  - Handles large notes by chunking them into smaller pieces.
 - 🔄 Auto-sync your Obsidian notes to the Vectorize index at a set interval.
 - 🔍 Filter the notes provided in the AI's context by created or modified dates as well as the type of note.
 
