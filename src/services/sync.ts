@@ -36,10 +36,21 @@ export class SyncService {
 
         const files = this.app.vault.getMarkdownFiles();
         const filteredFiles = files.filter(file => !this.isFileInIgnoredFolder(file));
-        this.logger.info(`Starting sync for ${filteredFiles.length} files`);
+        
+        const filesToSync = [];
+        for (const file of filteredFiles) {
+            const syncState = await this.getSyncState(file);
+            if (!syncState || syncState.lastModified !== file.stat.mtime) {
+                filesToSync.push(file);
+            } else {
+                result.successful++;
+            }
+        }
+        
+        this.logger.info(`Starting sync for ${filesToSync.length} files (${filteredFiles.length - filesToSync.length} already up to date)`);
 
-        for (let i = 0; i < filteredFiles.length; i += this.batchSize) {
-            const batch = filteredFiles.slice(i, i + this.batchSize);
+        for (let i = 0; i < filesToSync.length; i += this.batchSize) {
+            const batch = filesToSync.slice(i, i + this.batchSize);
             await Promise.allSettled(
                 batch.map(file => this.syncFile(file, result))
             );
@@ -61,10 +72,17 @@ export class SyncService {
     private async syncFile(file: TFile, result: SyncResult): Promise<void> {
         try {
             this.logger.debug(`Processing file: ${file.path}`);
-            
+
             const content = await this.app.vault.cachedRead(file);
             if (!content.trim()) {
                 this.logger.warn(`Skipping empty file: ${file.path}`);
+                return;
+            }
+
+            const syncState = await this.getSyncState(file);
+            if (syncState && syncState.lastModified === file.stat.mtime) {
+                this.logger.debug(`File ${file.path} hasn't changed, skipping`);
+                result.successful++;
                 return;
             }
 
@@ -74,6 +92,7 @@ export class SyncService {
                 return;
             }
             await this.upsertVectors(file, vectors);
+            await this.saveSyncState(file, vectors);
 
             result.successful++;
             this.logger.debug(`Successfully processed: ${file.path}`);
@@ -118,5 +137,48 @@ export class SyncService {
         if (!upsertResult) {
             throw new Error("Failed to upsert vectors");
         }
+    }
+
+    private async ensureSyncDirectory(): Promise<void> {
+        const syncDir = '.cloudflare-ai/sync';
+        if (!await this.app.vault.adapter.exists(syncDir)) {
+            await this.app.vault.adapter.mkdir(syncDir);
+        }
+    }
+
+    private async saveSyncState(file: TFile, vectors: number[][]): Promise<void> {
+        const syncState = {
+            path: file.path,
+            lastSync: Date.now(),
+            lastModified: file.stat.mtime,
+            vectors: vectors
+        };
+
+        const syncPath = `.cloudflare-ai/sync/${file.path.replace(/\//g, '_')}.json`;
+        await this.app.vault.adapter.write(
+            syncPath,
+            JSON.stringify(syncState, null, 2)
+        );
+    }
+
+    private async getSyncState(file: TFile): Promise<{
+        lastSync: number;
+        lastModified: number;
+        vectors: number[][];
+    } | null> {
+        await this.ensureSyncDirectory();
+        
+        const syncPath = `.cloudflare-ai/sync/${file.path.replace(/\//g, '_')}.json`;
+        
+        try {
+            if (await this.app.vault.adapter.exists(syncPath)) {
+                const content = await this.app.vault.adapter.read(syncPath);
+                return JSON.parse(content);
+            }
+        } catch (error) {
+            this.logger.warn(`Failed to read sync state for ${file.path}:`, error);
+        }
+        
+        return null;
     }
 }

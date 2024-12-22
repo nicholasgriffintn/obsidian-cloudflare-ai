@@ -8,6 +8,7 @@ A plugin for Obsidian that adds an AI assistant with RAG functionality via Cloud
 - 📝 Sync your Obsidian notes to a [Cloudflare Vectorize](https://developers.cloudflare.com/vectorize/) index.
 - 🔄 Auto-sync your Obsidian notes to the Vectorize index at a set interval.
   - You can also ignore folders if you don't want to sync them.
+  - State is saved in the `.cloudflare-ai/sync` folder, this ensures that we don't sync the same note multiple times.
 
 This is currently a work in progress, however, for now, here's a quick preview of the chat with a response that uses matching notes for context:
 
@@ -15,8 +16,6 @@ https://github.com/user-attachments/assets/cea3a90e-84ec-41ed-bd2b-c8dbfd51ce7c
 
 ## TODO
 
-- [ ] Add a way to track what notes have been synced and when so we can avoid syncing the same note multiple times.
-- [ ] Make sure that editing settings applies them immediately.
 - [ ] Add the ability to send properties in the metadata.
 - [ ] Add a minimum score for matches
 - [ ] Make top_k configurable
