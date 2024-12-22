@@ -23,7 +23,6 @@
                 "@unocss/extractor-svelte": "^0.57.2",
                 "builtin-modules": "^3.3.0",
                 "bun-types": "latest",
-                "electron": "^33.2.1",
                 "obsidian": "^1.4.11",
                 "svelte": "^4.2.2",
                 "svelte-check": "^3.5.2",

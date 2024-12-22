@@ -1,6 +1,10 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 import "virtual:uno.css";
-import Electron from "electron";
+
+// @ts-ignore
+const safeStorage = window.electron?.remote?.safeStorage ?? {
+	isEncryptionAvailable: () => false,
+};
 
 import { ChatModal } from "./modals/chat";
 import { CloudflareAIGateway } from "./lib/cloudflare-ai-gateway";
@@ -9,10 +13,6 @@ import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
 import type { CloudflareAIPluginSettings } from "./types";
 import { Logger } from "./lib/logger";
 import { obfuscate } from "./lib/obfuscate";
-
-const {
-	remote: { safeStorage },
-} = Electron;
 
 const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	cloudflareAccountId: "",
@@ -191,6 +191,9 @@ class CloudflareAIPluginSettingTab extends PluginSettingTab {
 
 	display(): void {
 		const { containerEl } = this;
+		
+		containerEl.empty();
+		
 		let temporaryCloudflareAiApiKey = '';
 		let temporaryVectorizeApiKey = '';
 
