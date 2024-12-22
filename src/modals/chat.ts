@@ -16,8 +16,9 @@ import { SyncService } from "../services/sync";
 export class ChatModal extends Modal {
 	private readonly DEFAULT_SYSTEM_MESSAGE: Message = {
 		role: "system",
-		content:
-			"You are a helpful AI assistant that analyzes notes and provides insights. Consider the context carefully before answering questions.",
+		content: `You are a helpful AI assistant that analyzes notes and provides insights. Consider the context carefully before answering questions. The current date is ${
+			new Date().toISOString().split("T")[0]
+		}.`,
 	};
 
 	private messages: Message[] = [];
