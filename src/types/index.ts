@@ -16,6 +16,7 @@ export interface CloudflareAIPluginSettings {
 	syncEnabled: boolean;
 	autoSyncInterval: number;
 	lastSyncTime?: number;
+	customTemplatesFolder: string;
 	logLevel: LogLevelType;
 }
 

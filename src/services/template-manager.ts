@@ -14,32 +14,16 @@ export class TemplateManager {
 		});
 	}
 
-	async loadCustomTemplates(): Promise<void> {
-		if (!(await this.app.vault.adapter.exists(".cloudflare-ai/templates"))) {
-			this.logger.debug("No custom templates folder found, creating...");
-
-			await this.app.vault.adapter.mkdir(".cloudflare-ai/templates");
-
-			for (const [name, template] of Object.entries(DEFAULT_TEMPLATES)) {
-				const content = [
-					"---",
-					`name: ${template.name}`,
-					`description: ${template.description}`,
-					"---",
-					"",
-					template.prompt,
-				].join("\n");
-
-				await this.app.vault.adapter.write(
-					`.cloudflare-ai/templates/${name}.md`,
-					content,
-				);
-			}
+	async loadCustomTemplates(folder: string): Promise<void> {
+		const templatesFolder = this.app.vault.getAbstractFileByPath(folder);
+		if (!templatesFolder) {
+			this.logger.debug("No custom templates folder found");
+			return;
 		}
 
 		const files = this.app.vault
 			.getMarkdownFiles()
-			.filter((file) => file.path.startsWith(".cloudflare-ai/templates/"));
+			.filter((file) => file.path.startsWith(folder));
 
 		for (const file of files) {
 			try {

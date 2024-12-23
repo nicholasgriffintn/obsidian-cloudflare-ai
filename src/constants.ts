@@ -37,6 +37,7 @@ export const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	autoSyncInterval: 30,
 	cloudflareAiApiKeySaved: false,
 	cloudflareVectorizeApiKeySaved: false,
+	customTemplatesFolder: "ai/templates",
 	logLevel: "error",
 };
 
@@ -65,15 +66,35 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
 		prompt:
 			"Rewrite this text to improve clarity and flow. Return only the rewritten text, no explanations or other text:\n\n{{text}}",
 	},
-	'generate-title': {
-		name: 'generate-title',
-		description: 'Generate a title from the content',
-		prompt: 'Generate a clear, concise title for this text. Return only the title, no quotes or extra text:\n\n{{text}}'
+	simplify: {
+		name: "simplify",
+		description: "Simplify the selected text",
+		prompt:
+			"Simplify this text to make it easier to understand. Return only the simplified text, no explanations or other text:\n\n{{text}}",
 	},
-	'generate-text': {
-		name: 'Generate text',
-		description: 'Generate text with custom variables',
-		prompt: 'Write a {{style}} passage about {{topic}} that is {{length}} long.\n\nUse this context:\n{{text}}',
-		variables: ['style', 'topic', 'length']
+	"suggest-tags": {
+		name: "suggest-tags",
+		description: "Suggest tags for the selected text",
+		prompt:
+			"Suggest tags for this text. Return only the tags, no explanations or other text:\n\n{{text}}",
+	},
+	"generate-title": {
+		name: "generate-title",
+		description: "Generate a title from the content",
+		prompt:
+			"Generate a clear, concise title for this text. Return only the title, no quotes or extra text. (do not use * \" \\ / < > : | ? .):\n\n{{text}}",
+	},
+	"generate-text": {
+		name: "Generate text",
+		description: "Generate text with custom variables",
+		prompt:
+			"Write a {{style}} passage about {{topic}} that is {{length}} long.\n\nUse this context:\n{{text}}",
+		variables: ["style", "topic", "length"],
+	},
+	brainstorm: {
+		name: "brainstorm",
+		description: "Brainstorm ideas for the selected text",
+		prompt:
+			"Brainstorm ideas for this text. Return only the ideas, no explanations or other text:\n\n{{text}}",
 	},
 };

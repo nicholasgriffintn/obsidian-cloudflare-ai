@@ -127,17 +127,28 @@ export default class CloudflareAIPlugin extends Plugin {
 			serviceName: PLUGIN_NAME,
 		});
 
-		const templateManager = new TemplateManager(this.app, this.logger);
-		await templateManager.loadCustomTemplates();
+		this.addSettingTab(new CloudflareAISettingsTab(this.app, this));
+
+		this.registerView(
+			PLUGIN_PREFIX,
+			(leaf) =>
+				new ChatView(
+					leaf,
+					this.app,
+					this.logger,
+					this.gateway,
+					this.vectorize,
+					this.settings,
+					this.syncService,
+				),
+		);
+
+		this.addRibbonIcon("message-circle", "Open AI Chat", () =>
+			this.activateView(),
+		);
 
 		this.syncStatusBar = this.addStatusBarItem();
 		this.updateSyncStatus("Ready");
-
-		this.addCommand({
-			id: "sync-notes",
-			name: "Sync Notes",
-			callback: () => this.syncNotes(),
-		});
 
 		this.setupSyncInterval();
 
@@ -174,133 +185,209 @@ export default class CloudflareAIPlugin extends Plugin {
 			}),
 		);
 
-		this.addSettingTab(new CloudflareAISettingsTab(this.app, this));
+		this.app.workspace.onLayoutReady(async () => {
+			try {
+				const templateManager = new TemplateManager(this.app, this.logger);
+				await templateManager.loadCustomTemplates(
+					this.settings.customTemplatesFolder,
+				);
 
-		this.registerView(
-			PLUGIN_PREFIX,
-			(leaf) =>
-				new ChatView(
-					leaf,
+				this.addCommand({
+					id: "start-chat",
+					name: "Start Chat",
+					callback: () => {
+						new ChatModal(
+							this.app,
+							this.logger,
+							this.gateway,
+							this.vectorize,
+							this.settings,
+							this.syncService,
+						).open();
+					},
+				});
+
+				this.addCommand({
+					id: "sync-notes",
+					name: "Sync Notes",
+					callback: () => this.syncNotes(),
+				});
+
+				const textGenerator = new TextGenerationService(
 					this.app,
 					this.logger,
 					this.gateway,
-					this.vectorize,
 					this.settings,
-					this.syncService,
-				),
-		);
+					templateManager,
+				);
 
-		this.addRibbonIcon("message-circle", "Open AI Chat", () =>
-			this.activateView(),
-		);
-
-		this.addCommand({
-			id: "start-chat",
-			name: "Start Chat",
-			callback: () => {
-				new ChatModal(
-					this.app,
-					this.logger,
-					this.gateway,
-					this.vectorize,
-					this.settings,
-					this.syncService,
-				).open();
-			},
-		});
-
-		const textGen = new TextGenerationService(
-			this.app,
-			this.logger,
-			this.gateway,
-			this.settings,
-			templateManager,
-		);
-
-		this.addCommand({
-			id: "continue-writing",
-			name: "Continue Writing",
-			editorCallback: (editor) => {
-				textGen.generateInEditor(editor, {
-					templateName: "continue",
-					insertAtCursor: true,
-					addNewline: true,
+				this.addCommand({
+					id: "continue-writing",
+					name: "Continue Writing",
+					editorCallback: (editor) => {
+						textGenerator.generateInEditor(editor, {
+							templateName: "continue",
+							insertAtCursor: true,
+							addNewline: true,
+						});
+					},
 				});
-			},
-		});
 
-		this.addCommand({
-			id: "summarise-selection",
-			name: "Summarise Selection",
-			editorCheckCallback: (checking, editor) => {
-				const hasSelection = editor.somethingSelected();
-				if (checking) return hasSelection;
+				this.addCommand({
+					id: "summarise-selection",
+					name: "Summarise Selection",
+					editorCheckCallback: (checking, editor) => {
+						const hasSelection = editor.somethingSelected();
+						if (checking) return hasSelection;
 
-				textGen.generateInEditor(editor, {
-					templateName: "summarise",
-					replaceSelection: true,
+						textGenerator.generateInEditor(editor, {
+							templateName: "summarise",
+							replaceSelection: true,
+						});
+					},
 				});
-			},
-		});
 
-		this.addCommand({
-			id: "expand-selection",
-			name: "Expand Selection",
-			editorCheckCallback: (checking, editor) => {
-				const hasSelection = editor.somethingSelected();
-				if (checking) return hasSelection;
+				this.addCommand({
+					id: "expand-selection",
+					name: "Expand Selection",
+					editorCheckCallback: (checking, editor) => {
+						const hasSelection = editor.somethingSelected();
+						if (checking) return hasSelection;
 
-				textGen.generateInEditor(editor, {
-					templateName: "expand",
-					insertAtCursor: true,
-					addNewline: true,
+						textGenerator.generateInEditor(editor, {
+							templateName: "expand",
+							insertAtCursor: true,
+							addNewline: true,
+						});
+					},
 				});
-			},
-		});
 
-		this.addCommand({
-			id: "rewrite-selection",
-			name: "Rewrite Selection",
-			editorCheckCallback: (checking, editor) => {
-				const hasSelection = editor.somethingSelected();
-				if (checking) return hasSelection;
+				this.addCommand({
+					id: "rewrite-selection",
+					name: "Rewrite Selection",
+					editorCheckCallback: (checking, editor) => {
+						const hasSelection = editor.somethingSelected();
+						if (checking) return hasSelection;
 
-				textGen.generateInEditor(editor, {
-					templateName: "rewrite",
-					replaceSelection: true,
+						textGenerator.generateInEditor(editor, {
+							templateName: "rewrite",
+							replaceSelection: true,
+						});
+					},
 				});
-			},
-		});
 
-		this.addCommand({
-			id: 'generate-title',
-			name: 'Generate Title',
-			editorCallback: async (editor) => {
-				const firstLine = editor.getLine(0);
-				const hasExistingTitle = firstLine.startsWith('#');
+				this.addCommand({
+					id: "simplify-selection",
+					name: "Simplify Selection",
+					editorCheckCallback: (checking, editor) => {
+						const hasSelection = editor.somethingSelected();
+						if (checking) return hasSelection;
 
-				textGen.generateInEditor(editor, {
-					templateName: 'generate-title',
-					position: { line: 0, ch: 0 },
-					replaceExisting: hasExistingTitle,
-					replaceLine: hasExistingTitle ? 0 : undefined,
-					prependHash: true,
-					addNewline: true
+						textGenerator.generateInEditor(editor, {
+							templateName: "simplify",
+							replaceSelection: true,
+						});
+					},
+				});
+
+				this.addCommand({
+					id: "suggest-tags",
+					name: "Suggest Tags",
+					editorCallback: (editor) => {
+						textGenerator.generateInEditor(editor, {
+							templateName: "suggest-tags",
+							replaceSelection: false,
+							addNewline: true,
+						});
+					},
+				});
+
+				this.addCommand({
+					id: "generate-title",
+					name: "Generate Title",
+					editorCallback: async (editor) => {
+						const file = this.app.workspace.getActiveFile();
+						if (!file) return;
+
+						try {
+							const content = editor.getValue();
+
+							const template = templateManager.getTemplate("generate-title");
+							if (!template) {
+								throw new Error("Generate title template not found");
+							}
+
+							const generatedTitleRequest = await this.gateway.makeRequest<{
+								response: string;
+							}>({
+								modelId: this.settings.modelId,
+								prompt: await templateManager.applyTemplate(template, {
+									text: content,
+								}),
+								shouldStream: false,
+								type: "text",
+								maxRetries: 3,
+							});
+
+							const generatedTitle = generatedTitleRequest.response;
+
+							if (typeof generatedTitle !== "string") {
+								throw new Error("Generated title is not a string");
+							}
+
+							const sanitizedTitle = generatedTitle
+								.replace(/^#\s+/, "")
+								.replace(/[\/\\:*?"<>|]/g, "")
+								.replace(/\s+/g, "-")
+								.trim()
+								.toLowerCase();
+
+							const newPath = file.path.replace(
+								file.name,
+								`${sanitizedTitle}.${file.extension}`,
+							);
+
+							await this.app.fileManager.renameFile(file, newPath);
+							new Notice(`File renamed to: ${sanitizedTitle}`);
+						} catch (error) {
+							this.logger.error("Failed to generate title and rename file:", {
+								error: error instanceof Error ? error.message : String(error),
+								stack: error instanceof Error ? error.stack : undefined,
+							});
+							new Notice("Failed to generate title and rename file");
+						}
+					},
+				});
+
+				this.addCommand({
+					id: "generate-text-with-variables",
+					name: "Generate Text With Variables",
+					editorCallback: (editor) => {
+						textGenerator.generateWithModal(editor, "generate-text", {
+							addNewline: true,
+						});
+					},
+				});
+
+				this.addCommand({
+					id: "brainstorm",
+					name: "Brainstorm",
+					editorCallback: (editor) => {
+						textGenerator.generateInEditor(editor, {
+							templateName: "brainstorm",
+							replaceSelection: false,
+							addNewline: true,
+						});
+					},
+				});
+
+				this.logger.debug("loaded");
+			} catch (error) {
+				this.logger.error("Failed to load commands", {
+					error: error instanceof Error ? error.message : String(error),
 				});
 			}
 		});
-
-		this.addCommand({
-			id: 'generate-text-with-variables',
-			name: 'Generate Text With Variables',
-			editorCallback: (editor) => {
-				textGen.generateWithModal(editor, 'generate-text', {
-					addNewline: true
-				});
-			}
-		});
-
-		this.logger.debug("loaded");
 	}
 
 	onunload(): void {

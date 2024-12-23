@@ -283,6 +283,23 @@ export class CloudflareAISettingsTab extends PluginSettingTab {
 		);
 	}
 
+	private createTextGeneratorSettings(containerEl: HTMLElement): void {
+		new Setting(containerEl).setName("Text Generator").setHeading();
+
+		new Setting(containerEl)
+			.setName("Custom templates folder")
+			.setDesc("The folder to store custom templates")
+			.addText((text) =>
+				text
+					.setPlaceholder("Enter the folder to store custom templates")
+					.setValue(this.settings.customTemplatesFolder)
+					.onChange(async (value) => {
+						this.settings.customTemplatesFolder = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+	}
+
 	private createLoggerSettings(containerEl: HTMLElement): void {
 		new Setting(containerEl).setName("Logging").setHeading();
 
@@ -349,6 +366,7 @@ export class CloudflareAISettingsTab extends PluginSettingTab {
 		this.createModelSettings(containerEl);
 		this.createVectorizeSettings(containerEl);
 		this.createSyncSettings(containerEl);
+		this.createTextGeneratorSettings(containerEl);
 		this.createLoggerSettings(containerEl);
 	}
 }

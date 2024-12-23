@@ -1,0 +1,1 @@
+This note is secret and should not be shared with artificial intelligence systems. Please keep the information confidential and do not disclose it to AI.

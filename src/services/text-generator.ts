@@ -52,8 +52,8 @@ export class TextGenerationService {
 
 		try {
 			let text: string;
-			
-			new Notice(`Generating ${options.templateName || 'text'}...`);
+
+			new Notice(`Generating ${options.templateName || "text"}...`);
 
 			if (options.templateName) {
 				const template = this.templateManager.getTemplate(options.templateName);
@@ -62,11 +62,11 @@ export class TextGenerationService {
 				}
 
 				text = await this.generateFromTemplate(template, {
-					text: options.text || selection || editor.getValue()
+					text: options.text || selection || editor.getValue(),
 				});
 
-				if (options.prependHash && !text.startsWith('#')) {
-					text = '# ' + text;
+				if (options.prependHash && !text.startsWith("#")) {
+					text = "# " + text;
 				}
 
 				if (options.addNewline) {
@@ -74,7 +74,7 @@ export class TextGenerationService {
 				}
 			} else {
 				text = await this.generateText({
-					prompt: selection
+					prompt: selection,
 				});
 			}
 
@@ -83,7 +83,7 @@ export class TextGenerationService {
 				editor.replaceRange(
 					text,
 					{ line: options.replaceLine, ch: 0 },
-					{ line: options.replaceLine, ch: line.length }
+					{ line: options.replaceLine, ch: line.length },
 				);
 			} else if (options.replaceSelection && editor.somethingSelected()) {
 				editor.replaceSelection(text);
@@ -98,7 +98,7 @@ export class TextGenerationService {
 			});
 			new Notice(
 				"Failed to generate: " +
-				(error instanceof Error ? error.message : String(error)),
+					(error instanceof Error ? error.message : String(error)),
 			);
 		}
 	}
@@ -108,9 +108,9 @@ export class TextGenerationService {
 		maxTokens?: number;
 		temperature?: number;
 	}): Promise<string> {
-        if (!options.prompt) {
-            throw new Error("Prompt is required");
-        }
+		if (!options.prompt) {
+			throw new Error("Prompt is required");
+		}
 
 		const response = await this.gateway.generateText([
 			{
@@ -131,7 +131,7 @@ export class TextGenerationService {
 			replaceExisting?: boolean;
 			replaceLine?: number;
 			addNewline?: boolean;
-		} = {}
+		} = {},
 	): Promise<void> {
 		const template = this.templateManager.getTemplate(templateName);
 		if (!template) {
@@ -139,15 +139,15 @@ export class TextGenerationService {
 		}
 
 		const modal = new TextGeneratorModal(this.app, template);
-		
+
 		modal.onSubmit(async (variables) => {
-            modal.close();
-            
-            new Notice("Generating...");
+			modal.close();
+
+			new Notice("Generating...");
 
 			const text = await this.generateFromTemplate(template, {
 				...variables,
-				text: editor.getValue()
+				text: editor.getValue(),
 			});
 
 			if (options.replaceLine !== undefined) {
@@ -155,7 +155,7 @@ export class TextGenerationService {
 				editor.replaceRange(
 					text,
 					{ line: options.replaceLine, ch: 0 },
-					{ line: options.replaceLine, ch: line.length }
+					{ line: options.replaceLine, ch: line.length },
 				);
 			} else {
 				const cursor = options.position || editor.getCursor();
