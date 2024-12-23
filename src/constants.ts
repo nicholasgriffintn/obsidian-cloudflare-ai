@@ -82,7 +82,7 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
 		name: "generate-title",
 		description: "Generate a title from the content",
 		prompt:
-			"Generate a clear, concise title for this text. Return only the title, no quotes or extra text. (do not use * \" \\ / < > : | ? .):\n\n{{text}}",
+			'Generate a clear, concise title for this text. Return only the title, no quotes or extra text. (do not use * " \\ / < > : | ? .):\n\n{{text}}',
 	},
 	"generate-text": {
 		name: "Generate text",

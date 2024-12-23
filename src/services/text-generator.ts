@@ -62,7 +62,7 @@ export class TextGenerationService {
 				);
 				loadingPosition = { line: options.replaceLine, ch: 0 };
 			} else if (options.replaceSelection && editor.somethingSelected()) {
-				const from = editor.getCursor('from');
+				const from = editor.getCursor("from");
 				editor.replaceSelection(loadingText);
 				loadingPosition = from;
 			} else {
@@ -98,7 +98,7 @@ export class TextGenerationService {
 
 			const loadingEndPosition = {
 				line: loadingPosition.line,
-				ch: loadingPosition.ch + loadingText.length
+				ch: loadingPosition.ch + loadingText.length,
 			};
 			editor.replaceRange(text, loadingPosition, loadingEndPosition);
 
@@ -107,7 +107,7 @@ export class TextGenerationService {
 			if (loadingPosition) {
 				const loadingEndPosition = {
 					line: loadingPosition.line,
-					ch: loadingPosition.ch + loadingText.length
+					ch: loadingPosition.ch + loadingText.length,
 				};
 				editor.replaceRange("", loadingPosition, loadingEndPosition);
 			}

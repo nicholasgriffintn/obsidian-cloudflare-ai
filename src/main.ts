@@ -143,13 +143,6 @@ export default class CloudflareAIPlugin extends Plugin {
 				),
 		);
 
-		this.addRibbonIcon("message-circle", "Open AI Chat", () =>
-			this.activateView(),
-		);
-
-		this.syncStatusBar = this.addStatusBarItem();
-		this.updateSyncStatus("Ready");
-
 		this.setupSyncInterval();
 
 		this.registerEvent(
@@ -187,6 +180,13 @@ export default class CloudflareAIPlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(async () => {
 			try {
+				this.addRibbonIcon("message-circle", "Open AI Chat", () =>
+					this.activateView(),
+				);
+
+				this.syncStatusBar = this.addStatusBarItem();
+				this.updateSyncStatus("Ready");
+
 				const templateManager = new TemplateManager(this.app, this.logger);
 				await templateManager.loadCustomTemplates(
 					this.settings.customTemplatesFolder,
@@ -381,13 +381,13 @@ export default class CloudflareAIPlugin extends Plugin {
 					},
 				});
 
-				const nonDefaultTemplates = Array.from(templateManager.getTemplates()).filter(
-					([_, template]) => !template.default,
-				);
+				const nonDefaultTemplates = Array.from(
+					templateManager.getTemplates(),
+				).filter(([_, template]) => !template.default);
 
 				for (const [name, template] of nonDefaultTemplates) {
 					const commandId = `template-${name}`;
-					
+
 					this.addCommand({
 						id: commandId,
 						name: template.description || `Execute template: ${template.name}`,
