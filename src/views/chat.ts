@@ -4,10 +4,6 @@ import type { SvelteComponent } from "svelte";
 import { PLUGIN_PREFIX } from "../constants";
 import { BaseChat } from "../shared/base-chat";
 import ChatViewComponent from "../components/ChatView.svelte";
-import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
-import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
-import { SyncService } from "../services/sync";
-import type { CloudflareAIPluginSettings } from "../types";
 
 class ConcreteChat extends BaseChat {}
 
@@ -16,19 +12,10 @@ export class ChatView extends ItemView {
 
 	constructor(
 		leaf: WorkspaceLeaf,
-		gateway: CloudflareAIGateway,
-		vectorize: CloudflareVectorize,
-		settings: CloudflareAIPluginSettings,
-		syncService: SyncService,
+		...args: ConstructorParameters<typeof BaseChat>
 	) {
 		super(leaf);
-		this.chat = new ConcreteChat(
-			leaf.view.app,
-			gateway,
-			vectorize,
-			settings,
-			syncService,
-		);
+		this.chat = new ConcreteChat(...args);
 		this.chat.contentEl = this.containerEl.children[1] as HTMLElement;
 	}
 

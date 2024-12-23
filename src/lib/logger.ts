@@ -17,7 +17,6 @@ export class Logger {
         this.output = mergedConfig.output || console;
         this.serviceName = mergedConfig.serviceName;
 
-        // Listen for config changes
         loggerConfig.addListener((newConfig) => {
             this.logLevel = this.parseLogLevel(newConfig.level || 'error');
         });

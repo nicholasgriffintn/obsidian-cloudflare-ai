@@ -191,6 +191,7 @@ export default class CloudflareAIPlugin extends Plugin {
 			(leaf) =>
 				new ChatView(
 					leaf,
+					this.app,
 					this.logger,
 					this.gateway,
 					this.vectorize,
