@@ -7,20 +7,22 @@
     export let isProcessing: boolean = false;
     export let onSendMessage: (message: string, filters: VectorizeFilter) => Promise<void>;
     export let onClearMessages: () => Promise<void>;
-    export let onCopyConversation: (content: string) => Promise<void>;
+    export let onCopyConversation: () => Promise<void>;
+    export let onCopyMessage: (message: string) => Promise<void>;
 </script>
 
 <div class="chat-view">
     <MessageList
         {isProcessing}
         {messages}
-        {onCopyConversation}
+        {onCopyMessage}
     />
     <ChatInput 
         {isProcessing}
+        {messages}
         {onSendMessage}
         {onClearMessages}
-        {onCopyConversation} 
+        {onCopyConversation}
     />
 </div>
 

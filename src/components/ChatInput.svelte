@@ -4,10 +4,15 @@
 
     import Send from "./icons/send.svelte";
     import Filter from "./icons/filter.svelte";
-    import type { VectorizeFilter, FilterOperator } from "../types";
+    import type { VectorizeFilter, FilterOperator, Message } from "../types";
+    import Clean from "./icons/clean.svelte";
+    import Copy from "./icons/copy.svelte";
 
     export let isProcessing: boolean = false;
+    export let messages: Message[] = [];
     export let onSendMessage: (message: string, filters: VectorizeFilter) => Promise<void>;
+    export let onClearMessages: () => Promise<void>;
+    export let onCopyConversation: () => Promise<void>;
 
     let inputText = "";
     let textArea: HTMLTextAreaElement;
@@ -101,12 +106,26 @@
                     class="action-button"
                     on:click={() => (showFilters = !showFilters)}
                     aria-expanded={showFilters}
+                    aria-label={showFilters ? "Hide RAG Filters" : "Show RAG Filters"}
                 >
                     <Filter />
                     <span class="sr-only">
                         {showFilters ? "Hide RAG Filters" : "Show RAG Filters"}
                     </span>
                 </button>
+                {#if messages?.length > 0}
+                    <button class="action-button" on:click={onClearMessages}>
+                        <Clean />
+                        <span class="sr-only">Clear Chat</span>
+                    </button>
+                    <button
+                        class="action-button"
+                        on:click={onCopyConversation}
+                    >
+                        <Copy />
+                        <span class="sr-only">Copy Conversation</span>
+                    </button>
+                {/if}
                 <slot name="additional-actions" />
             </div>
             
@@ -114,6 +133,7 @@
                 class="send-button"
                 disabled={isProcessing || !inputText.trim()}
                 on:click={handleSubmit}
+                aria-label="Send message"
             >
                 <Send />
                 <span class="sr-only">Send</span>
@@ -129,12 +149,12 @@
                         <label for={option.field}>{option.label}</label>
                         {#if option.type === "number"}
                             <div class="filter-inputs">
-                                <select name={`${option.field}-op`} class="operator-select">
+                                <select name={`${option.field}-op`} class="operator-select" aria-label="Filter operator">
                                     <option value="$eq">=</option>
                                     <option value="$gte">{`>=`}</option>
                                     <option value="$lte">{`<=`}</option>
                                 </select>
-                                <select name={option.field} class="value-select">
+                                <select name={option.field} class="value-select" aria-label="Filter value">
                                     <option value="">Any</option>
                                     {#if option.field.includes("Year")}
                                         {#each Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i) as year}
@@ -148,7 +168,7 @@
                                 </select>
                             </div>
                         {:else}
-                            <select name={option.field} class="full-width">
+                            <select name={option.field} class="full-width" aria-label="Filter value">
                                 <option value="">Any</option>
                                 <option value="md">Markdown</option>
                             </select>

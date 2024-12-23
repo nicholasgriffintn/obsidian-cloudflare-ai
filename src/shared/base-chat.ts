@@ -228,13 +228,13 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 		this.updateComponent();
 	}
 
-	async onCopyConversation(content: string): Promise<void> {
+	async onCopyContent(content: string, type: "message" | "conversation"): Promise<void> {
 		try {
 			await navigator.clipboard.writeText(content);
-			new Notice("Conversation copied to clipboard");
+			new Notice(`Copied ${type} to clipboard`);
 		} catch (error) {
 			this.logger.error("Error copying to clipboard:", error);
-			new Notice("Failed to copy conversation");
+			new Notice(`Failed to copy ${type}`);
 		}
 	}
 
@@ -258,8 +258,8 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 				onSendMessage: (message: string, filters: VectorizeFilter) =>
 					this.onSendMessage(message, filters),
 				onClearMessages: () => this.onClearMessages(),
-				onCopyConversation: (content: string) =>
-					this.onCopyConversation(content),
+				onCopyConversation: () => this.onCopyContent(this.messages.map((m) => `${m.role}: ${m.content}`).join("\n\n"), "conversation"),
+				onCopyMessage: (message: string) => this.onCopyContent(message, "message"),
 			},
 		});
 

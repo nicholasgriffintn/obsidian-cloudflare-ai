@@ -6,7 +6,7 @@
     import Copy from "./icons/copy.svelte";
 
     export let messages: Message[] = [];
-    export let onCopyConversation: (content: string) => Promise<void>;
+    export let onCopyMessage: (message: string) => Promise<void>;
     export let isProcessing: boolean = false;
 
     let messagesContainer: HTMLDivElement;
@@ -36,7 +36,7 @@
                             </div>
                             <div class="message-actions">
                                 <button class="copy-button" 
-                                    on:click={() => onCopyConversation(message.content)}
+                                    on:click={() => onCopyMessage(message.content)}
                                     aria-label="Copy message">
                                     <Copy />
                                     <span class="sr-only">Copy message</span>
