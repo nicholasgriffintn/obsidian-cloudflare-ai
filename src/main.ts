@@ -10,6 +10,8 @@ import type { CloudflareAIPluginSettings } from "./types";
 import { Logger } from "./lib/logger";
 import { DEFAULT_SETTINGS } from "./constants";
 import { safeStorage } from "./lib/safeStorage";
+import { PLUGIN_PREFIX } from "./constants";
+import { ChatView } from "./views/chat";
 
 export default class CloudflareAIPlugin extends Plugin {
 	public settings!: CloudflareAIPluginSettings;
@@ -92,6 +94,22 @@ export default class CloudflareAIPlugin extends Plugin {
 		this.logger.debug("Settings saved");
 	}
 
+	private async activateView(): Promise<void> {
+		const existingView = this.app.workspace.getLeavesOfType(PLUGIN_PREFIX);
+		if (existingView.length === 0) {
+			const leaf = this.app.workspace.getRightLeaf(false);
+			if (leaf) {
+				await leaf.setViewState({
+					type: PLUGIN_PREFIX,
+					active: true,
+				});
+			}
+		}
+		this.app.workspace.revealLeaf(
+			this.app.workspace.getLeavesOfType(PLUGIN_PREFIX)[0],
+		);
+	}
+
 	async onload(): Promise<void> {
 		this.logger.debug("CloudflareAIPlugin loaded");
 
@@ -153,6 +171,22 @@ export default class CloudflareAIPlugin extends Plugin {
 		);
 
 		this.addSettingTab(new CloudflareAISettingsTab(this.app, this));
+
+		this.registerView(
+			PLUGIN_PREFIX,
+			(leaf) =>
+				new ChatView(
+					leaf,
+					this.gateway,
+					this.vectorize,
+					this.settings,
+					this.syncService,
+				),
+		);
+
+		this.addRibbonIcon("message-circle", "Open AI Chat", () =>
+			this.activateView(),
+		);
 	}
 
 	onunload(): void {
@@ -160,6 +194,7 @@ export default class CloudflareAIPlugin extends Plugin {
 			window.clearInterval(this.syncInterval);
 		}
 		this.logger.debug("CloudflareAIPlugin unloaded");
+		this.app.workspace.detachLeavesOfType(PLUGIN_PREFIX);
 	}
 
 	private updateSyncStatus(status: string): void {

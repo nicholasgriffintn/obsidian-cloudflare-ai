@@ -1,5 +1,7 @@
 import type { CloudflareAIPluginSettings } from "./types";
 
+export const PLUGIN_PREFIX = "cloudflare-ai";
+
 export enum ModelIds {
 	LLAMA_70B_FAST = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
 	LLAMA_1B = "@cf/meta/llama-3.2-1b-instruct",

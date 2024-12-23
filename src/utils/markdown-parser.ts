@@ -1,7 +1,7 @@
 export function parseMarkdown(
 	input: string,
 	muted = false,
-	classNames: { p?: string } = { p: "text-base" }
+	classNames: { p?: string } = { p: "text-base" },
 ): string {
 	if (!input) return input;
 	const escapeHTML = (str: string) => {
@@ -13,8 +13,9 @@ export function parseMarkdown(
 			.replace(/'/g, "&#039;");
 	};
 
-	const linkClassName = `underline text-${muted ? "muted" : "primary"
-		}-foreground inline font-bold p-0 transition-colors hover:underline hover:outline-none decoration-1 decoration-skip-ink-none underline-offset-[0.25em] hover:decoration-2`;
+	const linkClassName = `underline text-${
+		muted ? "muted" : "primary"
+	}-foreground inline font-bold p-0 transition-colors hover:underline hover:outline-none decoration-1 decoration-skip-ink-none underline-offset-[0.25em] hover:decoration-2`;
 
 	// Pre-process code blocks to protect their content
 	const codeBlocks: string[] = [];
@@ -31,8 +32,8 @@ export function parseMarkdown(
 	});
 
 	let html = input
-		.replace(/\\\\/g, '\\')
-		.replace(/\\n/g, '\n')
+		.replace(/\\\\/g, "\\")
+		.replace(/\\n/g, "\n")
 		.replace(/<summary>/g, "**Summary:** ")
 		.replace(/<\/summary>/g, "")
 		.replace(/<questions>/g, "**Questions:** ")
@@ -53,10 +54,7 @@ export function parseMarkdown(
 		.replace(/<\/unclear_parts>/g, "")
 		.replace(/<key_elements>/g, "**Key Elements:** ")
 		.replace(/<\/key_elements>/g, "")
-		.replace(
-			/<key_elements_missing>/g,
-			"**Key Elements Missing:** ",
-		)
+		.replace(/<key_elements_missing>/g, "**Key Elements Missing:** ")
 		.replace(/<\/key_elements_missing>/g, "")
 		.replace(/<suggestions>/g, "**Suggestions:** ")
 		.replace(/<\/suggestions>/g, "")
@@ -84,7 +82,7 @@ export function parseMarkdown(
 		// Images (updated with proper class names and styling)
 		.replace(
 			/!\[(.*?)\]\((.*?)\)/g,
-			'<img src="$2" alt="$1" class="rounded-lg max-w-full h-auto my-4" loading="lazy" />'
+			'<img src="$2" alt="$1" class="rounded-lg max-w-full h-auto my-4" loading="lazy" />',
 		)
 
 		// Links
@@ -94,7 +92,10 @@ export function parseMarkdown(
 		)
 
 		// Handle Obsidian-style internal links
-		.replace(/\[\[(.*?)\]\]/g, `<a href="$1" class="internal-link ${linkClassName}">$1</a>`)
+		.replace(
+			/\[\[(.*?)\]\]/g,
+			`<a href="$1" class="internal-link ${linkClassName}">$1</a>`,
+		)
 
 		// Unordered lists (handle multiple levels)
 		.replace(/^(\s*[-*+]\s+.*(?:\n(?!\s*[-*+]|\s*\d+\.).*)*)+/gm, (match) => {
@@ -102,7 +103,7 @@ export function parseMarkdown(
 				.split("\n")
 				.map((line) => {
 					const content = line.replace(/^\s*[-*+]\s+/, "").trim();
-					return content ? `<li>${content}</li>` : '';
+					return content ? `<li>${content}</li>` : "";
 				})
 				.filter(Boolean)
 				.join("\n");
@@ -115,7 +116,7 @@ export function parseMarkdown(
 				.split("\n")
 				.map((line) => {
 					const content = line.replace(/^\s*\d+\.\s+/, "").trim();
-					return content ? `<li>${content}</li>` : '';
+					return content ? `<li>${content}</li>` : "";
 				})
 				.filter(Boolean)
 				.join("\n");
@@ -134,8 +135,12 @@ export function parseMarkdown(
 		// Paragraphs (handle multiple lines, but not inside lists)
 		.replace(
 			/^(?!<[houl]|<bl|<hr)[^\n]+(?:\n(?!<[houl]|<bl|<hr)[^\n]+)*/gm,
-			(match) => `<p class="${classNames.p || "text-base"}">${match.replace(/\n/g, "<br />")}</p>`,
-		)
+			(match) =>
+				`<p class="${classNames.p || "text-base"}">${match.replace(
+					/\n/g,
+					"<br />",
+				)}</p>`,
+		);
 
 	// Restore code blocks with proper formatting
 	html = html.replace(/{{CODEBLOCK(\d+)}}/g, (_, index) => {
@@ -146,8 +151,9 @@ export function parseMarkdown(
 		const hasLang = /^[a-zA-Z0-9]+$/.test(firstLine);
 		const lang = hasLang ? firstLine : "";
 		const content = hasLang ? lines.slice(1).join("\n").trim() : code;
-		return `<pre><code${lang ? ` class="language-${lang}"` : ""
-			}>${escapeHTML(content)}</code></pre>`;
+		return `<pre><code${
+			lang ? ` class="language-${lang}"` : ""
+		}>${escapeHTML(content)}</code></pre>`;
 	});
 
 	// Restore inline code with proper formatting
