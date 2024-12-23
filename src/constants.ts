@@ -65,4 +65,9 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
 		prompt:
 			"Rewrite this text to improve clarity and flow. Return only the rewritten text, no explanations or other text:\n\n{{text}}",
 	},
+	'generate-title': {
+		name: 'generate-title',
+		description: 'Generate a title from the content',
+		prompt: 'Generate a clear, concise title for this text. Return only the title, no quotes or extra text:\n\n{{text}}'
+	},
 };

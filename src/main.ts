@@ -210,7 +210,6 @@ export default class CloudflareAIPlugin extends Plugin {
 		});
 
 		const textGen = new TextGenerationService(
-			this.app,
 			this.logger,
 			this.gateway,
 			this.settings,
@@ -270,6 +269,24 @@ export default class CloudflareAIPlugin extends Plugin {
 					replaceSelection: true,
 				});
 			},
+		});
+
+		this.addCommand({
+			id: 'generate-title',
+			name: 'Generate Title',
+			editorCallback: async (editor) => {
+				const firstLine = editor.getLine(0);
+				const hasExistingTitle = firstLine.startsWith('#');
+
+				textGen.generateInEditor(editor, {
+					templateName: 'generate-title',
+					position: { line: 0, ch: 0 },
+					replaceExisting: hasExistingTitle,
+					replaceLine: hasExistingTitle ? 0 : undefined,
+					prependHash: true,
+					addNewline: true
+				});
+			}
 		});
 
 		this.logger.debug("loaded");
