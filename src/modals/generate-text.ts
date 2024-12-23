@@ -11,7 +11,7 @@ export class TextGeneratorModal extends Modal {
 	private isGenerating = false;
 
 	constructor(app: App, private template: Template) {
-
+		super(app);
 	}
 
 	onOpen() {
