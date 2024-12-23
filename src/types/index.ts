@@ -19,35 +19,35 @@ export interface CloudflareAIPluginSettings {
 	logLevel: LogLevelType;
 }
 
-export type LogLevelType = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevelType = "debug" | "info" | "warn" | "error";
 
 export enum LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARN = 2,
-    ERROR = 3,
+	DEBUG = 0,
+	INFO = 1,
+	WARN = 2,
+	ERROR = 3,
 }
 
 export interface LogMessage {
-    timestamp: Date;
-    level: LogLevelType;
-    message: string;
-    metadata?: Record<string, any>;
+	timestamp: Date;
+	level: LogLevelType;
+	message: string;
+	metadata?: Record<string, any>;
 }
 
 export type LogOutput = {
-    log: (message: string) => void;
-    error: (message: string) => void;
-    warn: (message: string) => void;
-    info: (message: string) => void;
-    debug: (message: string) => void;
+	log: (message: string) => void;
+	error: (message: string) => void;
+	warn: (message: string) => void;
+	info: (message: string) => void;
+	debug: (message: string) => void;
 };
 
 export interface LoggerConfig {
-    level?: LogLevelType;
-    useTimestamp?: boolean;
-    output?: LogOutput;
-    serviceName?: string;
+	level?: LogLevelType;
+	useTimestamp?: boolean;
+	output?: LogOutput;
+	serviceName?: string;
 }
 
 export interface BaseResponse {

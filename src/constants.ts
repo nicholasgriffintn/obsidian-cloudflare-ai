@@ -37,28 +37,32 @@ export const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	autoSyncInterval: 30,
 	cloudflareAiApiKeySaved: false,
 	cloudflareVectorizeApiKeySaved: false,
-	logLevel: 'error',
+	logLevel: "error",
 };
 
 export const DEFAULT_TEMPLATES: Record<string, Template> = {
 	continue: {
-		name: 'continue',
-		description: 'Continue writing from the current text',
-		prompt: 'Continue this text naturally, maintaining the same style and tone. Only return the continuation, no explanations or other text:\n\n{{text}}'
+		name: "continue",
+		description: "Continue writing from the current text",
+		prompt:
+			"Continue this text naturally, maintaining the same style and tone. Only return the continuation, no explanations or other text:\n\n{{text}}",
 	},
 	summarise: {
-		name: 'summarise',
-		description: 'Summarise the selected text',
-		prompt: 'Provide a concise summary of this text. Return only the summary, no explanations or other text:\n\n{{text}}'
+		name: "summarise",
+		description: "Summarise the selected text",
+		prompt:
+			"Provide a concise summary of this text. Return only the summary, no explanations or other text:\n\n{{text}}",
 	},
 	expand: {
-		name: 'expand',
-		description: 'Expand on the selected text',
-		prompt: 'Expand this text with more details and examples. Return only the expanded text, no explanations or other text:\n\n{{text}}'
+		name: "expand",
+		description: "Expand on the selected text",
+		prompt:
+			"Expand this text with more details and examples. Return only the expanded text, no explanations or other text:\n\n{{text}}",
 	},
 	rewrite: {
-		name: 'rewrite',
-		description: 'Rewrite the selected text',
-		prompt: 'Rewrite this text to improve clarity and flow. Return only the rewritten text, no explanations or other text:\n\n{{text}}'
-	}
+		name: "rewrite",
+		description: "Rewrite the selected text",
+		prompt:
+			"Rewrite this text to improve clarity and flow. Return only the rewritten text, no explanations or other text:\n\n{{text}}",
+	},
 };

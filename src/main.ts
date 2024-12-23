@@ -12,7 +12,7 @@ import { DEFAULT_SETTINGS, DEFAULT_TEMPLATES, PLUGIN_NAME } from "./constants";
 import { safeStorage } from "./lib/safeStorage";
 import { PLUGIN_PREFIX } from "./constants";
 import { ChatView } from "./views/chat";
-import { setGlobalLoggerConfig } from './lib/logger-config';
+import { setGlobalLoggerConfig } from "./lib/logger-config";
 import { TextGenerationService } from "./services/text-generator";
 import { TemplateManager } from "./services/template-manager";
 
@@ -36,7 +36,7 @@ export default class CloudflareAIPlugin extends Plugin {
 			this.logger.error("Failed to decrypt API key:", {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
-            });
+			});
 		}
 		return encryptedKey;
 	}
@@ -124,7 +124,7 @@ export default class CloudflareAIPlugin extends Plugin {
 
 		setGlobalLoggerConfig({
 			level: this.settings.logLevel,
-			serviceName: PLUGIN_NAME
+			serviceName: PLUGIN_NAME,
 		});
 
 		const templateManager = new TemplateManager(this.app, this.logger);
@@ -214,62 +214,62 @@ export default class CloudflareAIPlugin extends Plugin {
 			this.logger,
 			this.gateway,
 			this.settings,
-			templateManager
+			templateManager,
 		);
 
 		this.addCommand({
-			id: 'continue-writing',
-			name: 'Continue Writing',
+			id: "continue-writing",
+			name: "Continue Writing",
 			editorCallback: (editor) => {
 				textGen.generateInEditor(editor, {
-					templateName: 'continue',
+					templateName: "continue",
 					insertAtCursor: true,
-					addNewline: true
+					addNewline: true,
 				});
-			}
+			},
 		});
 
 		this.addCommand({
-			id: 'summarise-selection',
-			name: 'Summarise Selection',
+			id: "summarise-selection",
+			name: "Summarise Selection",
 			editorCheckCallback: (checking, editor) => {
 				const hasSelection = editor.somethingSelected();
 				if (checking) return hasSelection;
-				
+
 				textGen.generateInEditor(editor, {
-					templateName: 'summarise',
-					replaceSelection: true
+					templateName: "summarise",
+					replaceSelection: true,
 				});
-			}
+			},
 		});
 
 		this.addCommand({
-			id: 'expand-selection',
-			name: 'Expand Selection',
+			id: "expand-selection",
+			name: "Expand Selection",
 			editorCheckCallback: (checking, editor) => {
 				const hasSelection = editor.somethingSelected();
 				if (checking) return hasSelection;
-				
+
 				textGen.generateInEditor(editor, {
-					templateName: 'expand',
+					templateName: "expand",
 					insertAtCursor: true,
-					addNewline: true
+					addNewline: true,
 				});
-			}
+			},
 		});
 
 		this.addCommand({
-			id: 'rewrite-selection',
-			name: 'Rewrite Selection',
+			id: "rewrite-selection",
+			name: "Rewrite Selection",
 			editorCheckCallback: (checking, editor) => {
 				const hasSelection = editor.somethingSelected();
 				if (checking) return hasSelection;
-				
+
 				textGen.generateInEditor(editor, {
-					templateName: 'rewrite',
-					replaceSelection: true
+					templateName: "rewrite",
+					replaceSelection: true,
 				});
-			}
+			},
 		});
 
 		this.logger.debug("loaded");
@@ -308,13 +308,13 @@ export default class CloudflareAIPlugin extends Plugin {
 
 			const timestamp = new Date().toLocaleTimeString();
 			this.updateSyncStatus(`Complete (${timestamp})`);
-			
+
 			this.logger.debug("Sync complete", { timestamp });
 		} catch (error: unknown) {
 			this.logger.error("Sync failed", {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
-            });
+			});
 			this.updateSyncStatus("Failed");
 			new Notice(
 				`Sync failed: ${

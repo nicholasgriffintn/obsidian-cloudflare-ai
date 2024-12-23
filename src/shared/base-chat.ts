@@ -71,7 +71,7 @@ export abstract class BaseChat {
 			this.logger.error("Error generating embedding:", {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
-            });
+			});
 			return null;
 		}
 	}
@@ -82,7 +82,7 @@ export abstract class BaseChat {
 	): Promise<VectorSearchResult | null> {
 		try {
 			this.logger.debug("Searching for similar notes", { vector, filters });
-            
+
 			if (!vector) {
 				return null;
 			}
@@ -101,7 +101,7 @@ export abstract class BaseChat {
 			this.logger.error("Error searching vectors:", {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
-            });
+			});
 			return null;
 		}
 	}
@@ -152,9 +152,9 @@ export abstract class BaseChat {
 				};
 			} catch (error) {
 				this.logger.error(`Error reading note ${match.id}:`, {
-                    error: error instanceof Error ? error.message : String(error),
-                    stack: error instanceof Error ? error.stack : undefined,
-                });
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined,
+				});
 				return null;
 			}
 		});
@@ -182,7 +182,7 @@ export abstract class BaseChat {
 
 		const sourceLinks = contexts.map((ctx) => ctx.link).join(", ");
 
-        const prompt = `Context from my notes:
+		const prompt = `Context from my notes:
 
 ${formattedContext}
 
@@ -200,10 +200,10 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 		filters: VectorizeFilter,
 	): Promise<void> {
 		try {
-            if (!message.trim()) return;
-    
-            this.isProcessing = true;
-            this.updateComponent();
+			if (!message.trim()) return;
+
+			this.isProcessing = true;
+			this.updateComponent();
 
 			this.logger.debug("Sending message", { message, filters });
 
@@ -245,7 +245,7 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 			this.logger.error("Error in message processing:", {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
-            });
+			});
 			new Notice("Error generating response. Please try again.");
 
 			this.messages = this.messages.slice(0, -1);
@@ -271,7 +271,10 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 		this.updateComponent();
 	}
 
-	async onCopyContent(content: string, type: "message" | "conversation"): Promise<void> {
+	async onCopyContent(
+		content: string,
+		type: "message" | "conversation",
+	): Promise<void> {
 		try {
 			await navigator.clipboard.writeText(content);
 			new Notice(`Copied ${type} to clipboard`);
@@ -279,7 +282,7 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 			this.logger.error("Error copying to clipboard:", {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
-            });
+			});
 			new Notice(`Failed to copy ${type}`);
 		}
 	}
@@ -304,8 +307,13 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 				onSendMessage: (message: string, filters: VectorizeFilter) =>
 					this.onSendMessage(message, filters),
 				onClearMessages: () => this.onClearMessages(),
-				onCopyConversation: () => this.onCopyContent(this.messages.map((m) => `${m.role}: ${m.content}`).join("\n\n"), "conversation"),
-				onCopyMessage: (message: string) => this.onCopyContent(message, "message"),
+				onCopyConversation: () =>
+					this.onCopyContent(
+						this.messages.map((m) => `${m.role}: ${m.content}`).join("\n\n"),
+						"conversation",
+					),
+				onCopyMessage: (message: string) =>
+					this.onCopyContent(message, "message"),
 			},
 		});
 

@@ -25,8 +25,7 @@ export class CloudflareVectorize {
 		private readonly accountId: string,
 		private readonly apiKey: string,
 		private readonly indexName: string,
-	) {
-	}
+	) {}
 
 	private validateConfig(): void {
 		if (!this.accountId) {

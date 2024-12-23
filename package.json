@@ -1,6 +1,6 @@
 {
         "name": "obsidian-cloudflare-ai",
-        "version": "0.0.10",
+        "version": "0.0.11",
         "description": "A plugin for obsidian that adds an AI assistant with RAG functionality via Cloudflare AI",
         "main": "main.js",
         "type": "module",

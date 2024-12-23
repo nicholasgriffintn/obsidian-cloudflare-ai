@@ -14,8 +14,7 @@ export class SyncService {
 		private readonly gateway: CloudflareAIGateway,
 		private readonly textEmbeddingsModelId: string,
 		private readonly ignoredFolders: string[] = [],
-	) {
-	}
+	) {}
 
 	async sync(): Promise<SyncResult> {
 		this.logger.debug("Sync started");
@@ -125,7 +124,7 @@ export class SyncService {
 			this.logger.error(`Failed to process ${file.path}:`, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
-            });
+			});
 		}
 	}
 
@@ -284,7 +283,7 @@ export class SyncService {
 			this.logger.warn(`Failed to read sync state for ${vectorId}:`, {
 				error: error instanceof Error ? error.message : String(error),
 				stack: error instanceof Error ? error.stack : undefined,
-            });
+			});
 		}
 
 		return null;

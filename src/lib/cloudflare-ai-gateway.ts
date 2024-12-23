@@ -21,8 +21,7 @@ export class CloudflareAIGateway {
 		private readonly modelId: string,
 		private readonly maxTokens: number,
 		private readonly temperature: number,
-	) {
-	}
+	) {}
 
 	private validateConfig(): void {
 		if (!this.cloudflareAccountId) {

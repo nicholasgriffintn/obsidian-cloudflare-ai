@@ -5,7 +5,7 @@ import type { CloudflareAIPluginSettings, LogLevelType } from "./types";
 import { ModelIds, EmbeddingModelIds } from "./constants";
 import { safeStorage } from "./lib/safeStorage";
 import CloudflareAIPlugin from "./main";
-import { setGlobalLoggerConfig } from './lib/logger-config';
+import { setGlobalLoggerConfig } from "./lib/logger-config";
 
 export class CloudflareAISettingsTab extends PluginSettingTab {
 	private temporaryAiApiKey: string = "";
@@ -302,7 +302,7 @@ export class CloudflareAISettingsTab extends PluginSettingTab {
 						this.settings.logLevel = value as LogLevelType;
 						setGlobalLoggerConfig({ level: value as LogLevelType });
 						await this.plugin.saveSettings();
-					})
+					}),
 			);
 	}
 
