@@ -114,13 +114,14 @@
                     </span>
                 </button>
                 {#if messages?.length > 0}
-                    <button class="action-button" on:click={onClearMessages}>
+                    <button class="action-button" on:click={onClearMessages} aria-label="Clear Chat">
                         <Clean />
                         <span class="sr-only">Clear Chat</span>
                     </button>
                     <button
                         class="action-button"
                         on:click={onCopyConversation}
+                        aria-label="Copy Conversation"
                     >
                         <Copy />
                         <span class="sr-only">Copy Conversation</span>
