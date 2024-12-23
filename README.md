@@ -16,7 +16,7 @@ A plugin for Obsidian that adds an AI assistant with RAG functionality via Cloud
 
 This is currently a work in progress, however, for now, here's a quick preview of the chat with a response that uses matching notes for context:
 
-https://github.com/user-attachments/assets/cea3a90e-84ec-41ed-bd2b-c8dbfd51ce7c
+https://github.com/user-attachments/assets/01f17af8-3adb-4a22-9dad-86948064353c
 
 ## TODO
 
