@@ -18,7 +18,6 @@ export abstract class BaseChat {
 	public component: SvelteComponent | null = null;
 	public readonly svelteComponents: SvelteComponent[] = [];
 	public isProcessing = false;
-	public readonly logger: Logger;
 	public contentEl: HTMLElement;
 
 	protected readonly DEFAULT_SYSTEM_MESSAGE: Message = {
@@ -30,13 +29,13 @@ export abstract class BaseChat {
 
 	constructor(
 		protected app: App,
+		protected logger: Logger,
 		protected gateway: CloudflareAIGateway,
 		protected vectorize: CloudflareVectorize,
 		protected settings: CloudflareAIPluginSettings,
 		protected sync: SyncService,
 	) {
 		this.validateServices();
-		this.logger = new Logger();
 		this.contentEl = document.createElement("div");
 	}
 
@@ -54,6 +53,8 @@ export abstract class BaseChat {
 
 	private async generateEmbedding(text: string): Promise<number[] | null> {
 		try {
+			this.logger.debug("Generating embedding", { text });
+
 			const embedding = await this.gateway.makeRequest<{
 				data: number[][];
 			}>({
@@ -63,9 +64,14 @@ export abstract class BaseChat {
 				type: "embedding",
 			});
 
+			this.logger.debug("Embedding generated", { embedding });
+
 			return embedding?.data?.[0] ?? null;
 		} catch (error) {
-			this.logger.error("Error generating embedding:", error);
+			this.logger.error("Error generating embedding:", {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+            });
 			return null;
 		}
 	}
@@ -75,18 +81,27 @@ export abstract class BaseChat {
 		filters: VectorizeFilter,
 	): Promise<VectorSearchResult | null> {
 		try {
+			this.logger.debug("Searching for similar notes", { vector, filters });
+            
 			if (!vector) {
 				return null;
 			}
 
-			return await this.vectorize.queryVectors({
+			const result = await this.vectorize.queryVectors({
 				vector,
 				topK: this.settings.topK,
 				namespace: this.app.vault.getName(),
 				filter: filters,
 			});
+
+			this.logger.debug("Similar notes found", { result });
+
+			return result;
 		} catch (error) {
-			this.logger.error("Error searching vectors:", error);
+			this.logger.error("Error searching vectors:", {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+            });
 			return null;
 		}
 	}
@@ -99,13 +114,25 @@ export abstract class BaseChat {
 			return message;
 		}
 
+		this.logger.debug("Enriching message with context", {
+			message,
+			searchResults,
+		});
+
 		const relevantMatches = searchResults.matches
 			.filter((match) => match.score >= this.settings.minSimilarityScore)
 			.sort((a, b) => b.score - a.score);
 
 		if (!relevantMatches.length) {
+			this.logger.debug("No relevant matches found", {
+				message,
+				minSimilarityScore: this.settings.minSimilarityScore,
+			});
+
 			return message;
 		}
+
+		this.logger.debug("Relevant matches found", { relevantMatches });
 
 		const contextPromises = relevantMatches.map(async (match: VectorMatch) => {
 			try {
@@ -124,7 +151,10 @@ export abstract class BaseChat {
 					link: `[[${file.path}]]`,
 				};
 			} catch (error) {
-				this.logger.error(`Error reading note ${match.id}:`, error);
+				this.logger.error(`Error reading note ${match.id}:`, {
+                    error: error instanceof Error ? error.message : String(error),
+                    stack: error instanceof Error ? error.stack : undefined,
+                });
 				return null;
 			}
 		});
@@ -132,6 +162,8 @@ export abstract class BaseChat {
 		const contexts = (await Promise.all(contextPromises)).filter(
 			(ctx): ctx is NonNullable<typeof ctx> => ctx !== null,
 		);
+
+		this.logger.debug("Contexts found", { contexts });
 
 		if (!contexts.length) {
 			return message;
@@ -146,27 +178,35 @@ export abstract class BaseChat {
 			)
 			.join("\n\n");
 
+		this.logger.debug("Formatted context", { formattedContext });
+
 		const sourceLinks = contexts.map((ctx) => ctx.link).join(", ");
 
-		return `Context from my notes:
+        const prompt = `Context from my notes:
 
 ${formattedContext}
 
 Question: ${message}
 
 Instructions: Please reference the source notes using their links (${sourceLinks}) when they are relevant to your response. Format your response in markdown.`;
+
+		this.logger.debug("Prompt generated", { prompt });
+
+		return prompt;
 	}
 
 	async onSendMessage(
 		message: string,
 		filters: VectorizeFilter,
 	): Promise<void> {
-		if (!message.trim()) return;
-
-		this.isProcessing = true;
-		this.updateComponent();
-
 		try {
+            if (!message.trim()) return;
+    
+            this.isProcessing = true;
+            this.updateComponent();
+
+			this.logger.debug("Sending message", { message, filters });
+
 			if (!this.apiMessages.some((msg) => msg.role === "system")) {
 				this.apiMessages.push(this.DEFAULT_SYSTEM_MESSAGE);
 			}
@@ -202,7 +242,10 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 			this.messages.push(assistantMessage);
 			this.apiMessages.push(assistantMessage);
 		} catch (error) {
-			this.logger.error("Error in message processing:", error);
+			this.logger.error("Error in message processing:", {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+            });
 			new Notice("Error generating response. Please try again.");
 
 			this.messages = this.messages.slice(0, -1);
@@ -233,7 +276,10 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 			await navigator.clipboard.writeText(content);
 			new Notice(`Copied ${type} to clipboard`);
 		} catch (error) {
-			this.logger.error("Error copying to clipboard:", error);
+			this.logger.error("Error copying to clipboard:", {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+            });
 			new Notice(`Failed to copy ${type}`);
 		}
 	}

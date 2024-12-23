@@ -8,10 +8,11 @@ import { SyncService } from "./services/sync";
 import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
 import type { CloudflareAIPluginSettings } from "./types";
 import { Logger } from "./lib/logger";
-import { DEFAULT_SETTINGS } from "./constants";
+import { DEFAULT_SETTINGS, PLUGIN_NAME } from "./constants";
 import { safeStorage } from "./lib/safeStorage";
 import { PLUGIN_PREFIX } from "./constants";
 import { ChatView } from "./views/chat";
+import { setGlobalLoggerConfig } from './lib/logger-config';
 
 export default class CloudflareAIPlugin extends Plugin {
 	public settings!: CloudflareAIPluginSettings;
@@ -30,7 +31,10 @@ export default class CloudflareAIPlugin extends Plugin {
 				return safeStorage.decryptString(Buffer.from(encryptedKey, "base64"));
 			}
 		} catch (error) {
-			this.logger.error("Failed to decrypt API key:", error);
+			this.logger.error("Failed to decrypt API key:", {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+            });
 		}
 		return encryptedKey;
 	}
@@ -44,6 +48,7 @@ export default class CloudflareAIPlugin extends Plugin {
 		);
 
 		this.gateway = new CloudflareAIGateway(
+			this.logger,
 			this.settings.cloudflareAccountId,
 			this.settings.cloudflareAiGatewayId,
 			decryptedAiApiKey,
@@ -53,6 +58,7 @@ export default class CloudflareAIPlugin extends Plugin {
 		);
 
 		this.vectorize = new CloudflareVectorize(
+			this.logger,
 			this.settings.cloudflareAccountId,
 			decryptedVectorizeApiKey,
 			this.settings.vectorizeIndexName,
@@ -60,6 +66,7 @@ export default class CloudflareAIPlugin extends Plugin {
 
 		this.syncService = new SyncService(
 			this.app,
+			this.logger,
 			this.vectorize,
 			this.gateway,
 			this.settings.textEmbeddingsModelId,
@@ -111,9 +118,12 @@ export default class CloudflareAIPlugin extends Plugin {
 	}
 
 	async onload(): Promise<void> {
-		this.logger.debug("CloudflareAIPlugin loaded");
-
 		await this.loadSettings();
+
+		setGlobalLoggerConfig({
+			level: this.settings.logLevel,
+			serviceName: PLUGIN_NAME
+		});
 
 		this.addCommand({
 			id: "start-chat",
@@ -121,6 +131,7 @@ export default class CloudflareAIPlugin extends Plugin {
 			callback: () => {
 				new ChatModal(
 					this.app,
+					this.logger,
 					this.gateway,
 					this.vectorize,
 					this.settings,
@@ -157,7 +168,10 @@ export default class CloudflareAIPlugin extends Plugin {
 				} catch (error) {
 					this.logger.error(
 						"Failed to remove deleted file from vector index:",
-						error,
+						{
+							error: error instanceof Error ? error.message : String(error),
+							stack: error instanceof Error ? error.stack : undefined,
+						},
 					);
 					new Notice(
 						`Failed to remove deleted file ${
@@ -177,6 +191,7 @@ export default class CloudflareAIPlugin extends Plugin {
 			(leaf) =>
 				new ChatView(
 					leaf,
+					this.logger,
 					this.gateway,
 					this.vectorize,
 					this.settings,
@@ -187,18 +202,25 @@ export default class CloudflareAIPlugin extends Plugin {
 		this.addRibbonIcon("message-circle", "Open AI Chat", () =>
 			this.activateView(),
 		);
+
+		this.logger.debug("loaded");
 	}
 
 	onunload(): void {
 		if (this.syncInterval) {
 			window.clearInterval(this.syncInterval);
 		}
-		this.logger.debug("CloudflareAIPlugin unloaded");
+		if (this.logger) {
+			this.logger.destroy();
+		}
 		this.app.workspace.detachLeavesOfType(PLUGIN_PREFIX);
+
+		this.logger.debug("unloaded");
 	}
 
 	private updateSyncStatus(status: string): void {
 		this.syncStatusBar.setText(`AI Sync: ${status}`);
+		this.logger.debug("Sync status updated", { status });
 	}
 
 	async syncNotes(): Promise<void> {
@@ -217,9 +239,13 @@ export default class CloudflareAIPlugin extends Plugin {
 
 			const timestamp = new Date().toLocaleTimeString();
 			this.updateSyncStatus(`Complete (${timestamp})`);
-			this.logger.debug("Sync complete");
+			
+			this.logger.debug("Sync complete", { timestamp });
 		} catch (error: unknown) {
-			this.logger.error("Sync failed", error);
+			this.logger.error("Sync failed", {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+            });
 			this.updateSyncStatus("Failed");
 			new Notice(
 				`Sync failed: ${

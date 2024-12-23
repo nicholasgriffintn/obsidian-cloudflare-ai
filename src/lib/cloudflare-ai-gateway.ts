@@ -6,15 +6,15 @@ import type {
 	TextResponse,
 	EmbeddingResponse,
 } from "../types";
-import { Logger } from "./logger";
+import type { Logger } from "./logger";
 
 const BASE_AI_GATEWAY_URL = "https://gateway.ai.cloudflare.com/v1";
 
 export class CloudflareAIGateway {
 	private readonly email: string = "test@test.com";
-	private readonly logger: Logger;
 
 	constructor(
+		private readonly logger: Logger,
 		private readonly cloudflareAccountId: string,
 		private readonly cloudflareAiGatewayId: string,
 		private readonly cloudflareAiApiKey: string,
@@ -22,7 +22,6 @@ export class CloudflareAIGateway {
 		private readonly maxTokens: number,
 		private readonly temperature: number,
 	) {
-		this.logger = new Logger();
 	}
 
 	private validateConfig(): void {
@@ -72,7 +71,10 @@ export class CloudflareAIGateway {
 
 	private displayError(error: unknown): void {
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		this.logger.error("AI Gateway error:", errorMessage);
+		this.logger.error("AI Gateway error:", {
+			error: errorMessage,
+			stack: error instanceof Error ? error.stack : undefined,
+		});
 		new Notice(`AI Gateway error: ${errorMessage}`, 5000);
 	}
 

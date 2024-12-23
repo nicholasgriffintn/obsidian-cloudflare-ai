@@ -2,23 +2,24 @@ import { App, TFile } from "obsidian";
 import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
 import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
 import type { SyncResult } from "../types";
-import { Logger } from "../lib/logger";
+import type { Logger } from "../lib/logger";
 
 export class SyncService {
 	private readonly batchSize = 5;
-	private readonly logger: Logger;
 
 	constructor(
 		private readonly app: App,
+		private readonly logger: Logger,
 		private readonly vectorize: CloudflareVectorize,
 		private readonly gateway: CloudflareAIGateway,
 		private readonly textEmbeddingsModelId: string,
 		private readonly ignoredFolders: string[] = [],
 	) {
-		this.logger = new Logger();
 	}
 
 	async sync(): Promise<SyncResult> {
+		this.logger.debug("Sync started");
+
 		const result: SyncResult = {
 			successful: 0,
 			failed: 0,
@@ -31,6 +32,8 @@ export class SyncService {
 		const filteredFiles = files
 			.filter((file) => !this.isFileInIgnoredFolder(file))
 			.filter((file) => file.extension === "md");
+
+		this.logger.debug("Found files", { files: filteredFiles });
 
 		const filesToSync = [];
 		for (const file of filteredFiles) {
@@ -119,7 +122,10 @@ export class SyncService {
 				file: file.path,
 				error: error instanceof Error ? error.message : String(error),
 			});
-			this.logger.error(`Failed to process ${file.path}:`, error);
+			this.logger.error(`Failed to process ${file.path}:`, {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+            });
 		}
 	}
 
@@ -275,7 +281,10 @@ export class SyncService {
 				return JSON.parse(content);
 			}
 		} catch (error) {
-			this.logger.warn(`Failed to read sync state for ${vectorId}:`, error);
+			this.logger.warn(`Failed to read sync state for ${vectorId}:`, {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+            });
 		}
 
 		return null;
@@ -287,7 +296,7 @@ export class SyncService {
 		currentBatch: number,
 		totalBatches: number,
 	): Promise<void> {
-		this.logger.info(`Processing batch ${currentBatch}/${totalBatches}`);
+		this.logger.debug(`Processing sync batch ${currentBatch}/${totalBatches}`);
 
 		const batchResults = await Promise.allSettled(
 			batch.map((file) => this.syncFile(file, result)),

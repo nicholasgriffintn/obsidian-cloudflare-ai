@@ -6,12 +6,10 @@ import type {
 	VectorSearchResult,
 	CloudflareResponse,
 	FilterOperator,
-	FilterValue,
-	FilterCondition,
 	VectorizeFilter,
 	VectorizeMetadataField,
 } from "../types";
-import { Logger } from "./logger";
+import type { Logger } from "./logger";
 
 const BASE_CLOUDFLARE_API_URL =
 	"https://api.cloudflare.com/client/v4/accounts/";
@@ -21,14 +19,13 @@ type RequestType = "ndjson" | "json";
 export class CloudflareVectorize {
 	private static readonly RETRY_DELAY_MS = 1000;
 	private static readonly UPSTREAM_TIMEOUT_ERROR = "vectorize.upstream_timeout";
-	private readonly logger: Logger;
 
 	constructor(
+		private readonly logger: Logger,
 		private readonly accountId: string,
 		private readonly apiKey: string,
 		private readonly indexName: string,
 	) {
-		this.logger = new Logger();
 	}
 
 	private validateConfig(): void {
@@ -64,9 +61,13 @@ export class CloudflareVectorize {
 		);
 	}
 
-	private displayError(error: string): void {
-		this.logger.error("Vectorize API error:", error);
-		new Notice(`Vectorize API error: ${error}`, 5000);
+	private displayError(error: unknown): void {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		this.logger.error("Vectorize API error:", {
+			error: errorMessage,
+			stack: error instanceof Error ? error.stack : undefined,
+		});
+		new Notice(`Vectorize API error: ${errorMessage}`, 5000);
 	}
 
 	private async makeRequest<T>(

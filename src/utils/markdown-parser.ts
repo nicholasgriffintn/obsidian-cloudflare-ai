@@ -4,6 +4,7 @@ export function parseMarkdown(
 	classNames: { p?: string } = { p: "text-base" },
 ): string {
 	if (!input) return input;
+
 	const escapeHTML = (str: string) => {
 		return str
 			.replace(/&/g, "&amp;")
@@ -17,14 +18,14 @@ export function parseMarkdown(
 		muted ? "muted" : "primary"
 	}-foreground inline font-bold p-0 transition-colors hover:underline hover:outline-none decoration-1 decoration-skip-ink-none underline-offset-[0.25em] hover:decoration-2`;
 
-	// Pre-process code blocks to protect their content
+	// Pre-process code blocks
 	const codeBlocks: string[] = [];
 	input = input.replace(/```([\s\S]*?)```/g, (match, code) => {
 		codeBlocks.push(code);
 		return `{{CODEBLOCK${codeBlocks.length - 1}}}`;
 	});
 
-	// Pre-process inline code to protect their content
+	// Pre-process inline code
 	const inlineCode: string[] = [];
 	input = input.replace(/`([^`]+)`/g, (match, code) => {
 		inlineCode.push(code);
@@ -66,20 +67,20 @@ export function parseMarkdown(
 		.replace(/<\/problem_breakdown>/g, "");
 
 	html = escapeHTML(html)
-		// Headers (with proper spacing)
+		// Headers
 		.replace(/^### (.*?)$/gm, "<h3>$1</h3>\n")
 		.replace(/^## (.*?)$/gm, "<h2>$1</h2>\n")
 		.replace(/^# (.*?)$/gm, "<h1>$1</h1>\n")
 
-		// Bold (handle both * and _)
+		// Bold
 		.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
 		.replace(/__(.*?)__/g, "<strong>$1</strong>")
 
-		// Italic (handle both * and _)
+		// Italic
 		.replace(/\*(.*?)\*/g, "<em>$1</em>")
 		.replace(/_(.*?)_/g, "<em>$1</em>")
 
-		// Images (updated with proper class names and styling)
+		// Images
 		.replace(
 			/!\[(.*?)\]\((.*?)\)/g,
 			'<img src="$2" alt="$1" class="rounded-lg max-w-full h-auto my-4" loading="lazy" />',
@@ -97,7 +98,7 @@ export function parseMarkdown(
 			`<a href="$1" class="internal-link ${linkClassName}">$1</a>`,
 		)
 
-		// Unordered lists (handle multiple levels)
+		// Unordered lists
 		.replace(/^(\s*[-*+]\s+.*(?:\n(?!\s*[-*+]|\s*\d+\.).*)*)+/gm, (match) => {
 			const items = match
 				.split("\n")
@@ -110,7 +111,7 @@ export function parseMarkdown(
 			return `<ul class="list-disc">${items}</ul>`;
 		})
 
-		// Ordered lists (handle multiple levels)
+		// Ordered lists
 		.replace(/^(\s*\d+\.\s+.*(?:\n(?!\s*[-*+]|\s*\d+\.).*)*)+/gm, (match) => {
 			const items = match
 				.split("\n")
@@ -123,7 +124,7 @@ export function parseMarkdown(
 			return `<ol class="list-decimal">${items}</ol>`;
 		})
 
-		// Blockquotes (handle multiple lines)
+		// Blockquotes
 		.replace(
 			/^(>\s+.*(?:\n(?!>).*)*)+/gm,
 			(match) => `<blockquote>${match.replace(/^>\s+/gm, "")}</blockquote>`,
@@ -132,7 +133,7 @@ export function parseMarkdown(
 		// Horizontal rules
 		.replace(/^(?:---|\*\*\*|___)\s*$/gm, "<hr>")
 
-		// Paragraphs (handle multiple lines, but not inside lists)
+		// Paragraphs
 		.replace(
 			/^(?!<[houl]|<bl|<hr)[^\n]+(?:\n(?!<[houl]|<bl|<hr)[^\n]+)*/gm,
 			(match) =>

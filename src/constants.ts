@@ -1,6 +1,7 @@
 import type { CloudflareAIPluginSettings } from "./types";
 
 export const PLUGIN_PREFIX = "cloudflare-ai";
+export const PLUGIN_NAME = "Cloudflare AI";
 
 export enum ModelIds {
 	LLAMA_70B_FAST = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
@@ -36,4 +37,5 @@ export const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	autoSyncInterval: 30,
 	cloudflareAiApiKeySaved: false,
 	cloudflareVectorizeApiKeySaved: false,
+	logLevel: 'error',
 };

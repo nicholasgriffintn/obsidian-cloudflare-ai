@@ -1,10 +1,11 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 
 import { obfuscate } from "./lib/obfuscate";
-import type { CloudflareAIPluginSettings } from "./types";
+import type { CloudflareAIPluginSettings, LogLevelType } from "./types";
 import { ModelIds, EmbeddingModelIds } from "./constants";
 import { safeStorage } from "./lib/safeStorage";
 import CloudflareAIPlugin from "./main";
+import { setGlobalLoggerConfig } from './lib/logger-config';
 
 export class CloudflareAISettingsTab extends PluginSettingTab {
 	private temporaryAiApiKey: string = "";
@@ -282,6 +283,29 @@ export class CloudflareAISettingsTab extends PluginSettingTab {
 		);
 	}
 
+	private createLoggerSettings(containerEl: HTMLElement): void {
+		new Setting(containerEl).setName("Logging").setHeading();
+
+		new Setting(containerEl)
+			.setName("Log Level")
+			.setDesc("Set the logging level for the plugin")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOptions({
+						error: "Error",
+						warn: "Warning",
+						info: "Info",
+						debug: "Debug",
+					})
+					.setValue(this.settings.logLevel || "error")
+					.onChange(async (value) => {
+						this.settings.logLevel = value as LogLevelType;
+						setGlobalLoggerConfig({ level: value as LogLevelType });
+						await this.plugin.saveSettings();
+					})
+			);
+	}
+
 	private createNumberSetting(
 		containerEl: HTMLElement,
 		name: string,
@@ -325,5 +349,6 @@ export class CloudflareAISettingsTab extends PluginSettingTab {
 		this.createModelSettings(containerEl);
 		this.createVectorizeSettings(containerEl);
 		this.createSyncSettings(containerEl);
+		this.createLoggerSettings(containerEl);
 	}
 }
