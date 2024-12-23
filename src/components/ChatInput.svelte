@@ -1,6 +1,9 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { fade } from "svelte/transition";
+
+    import Send from "./icons/send.svelte";
+    import Filter from "./icons/filter.svelte";
     import type { VectorizeFilter, FilterOperator } from "../types";
 
     export let isProcessing: boolean = false;
@@ -10,6 +13,7 @@
     let textArea: HTMLTextAreaElement;
     let filters: VectorizeFilter = {};
     let showFilters = false;
+    let inputContainer: HTMLDivElement;
 
     const filterOptions = [
         { field: "createdYear", type: "number", label: "Created Year" },
@@ -21,13 +25,19 @@
 
     const adjustTextAreaHeight = () => {
         if (textArea) {
-            textArea.style.height = "auto";
-            textArea.style.height = `${Math.min(textArea.scrollHeight, 200)}px`;
+            textArea.style.height = "24px";
+            const newHeight = Math.min(Math.max(textArea.scrollHeight, 24), 200);
+            textArea.style.height = `${newHeight}px`;
+            if (inputContainer) {
+                inputContainer.style.height = `${newHeight + 66}px`;
+            }
         }
     };
 
     onMount(() => {
         if (textArea) {
+            textArea.style.height = "24px";
+            inputContainer.style.height = "90px";
             adjustTextAreaHeight();
         }
     });
@@ -72,200 +82,244 @@
     }
 </script>
 
-<div class="input-container">
-    <div class="input-controls">
+<div class="input-wrapper">
+    <div class="input-container" bind:this={inputContainer}>
         <textarea
             bind:this={textArea}
             bind:value={inputText}
             on:input={adjustTextAreaHeight}
             on:keydown={handleKeyDown}
-            placeholder="Type your message here... (Shift + Enter for new line)"
+            placeholder="Type your message here..."
             disabled={isProcessing}
             rows="1"
             aria-label="Message input"
         />
-        <button
-            class="send-button submit"
-            disabled={isProcessing || !inputText.trim()}
-            on:click={handleSubmit}
-        >
-            Send
-        </button>
+        
+        <div class="actions-container">
+            <div class="left-actions">
+                <button
+                    class="action-button"
+                    on:click={() => (showFilters = !showFilters)}
+                    aria-expanded={showFilters}
+                >
+                    <Filter />
+                    <span class="sr-only">
+                        {showFilters ? "Hide RAG Filters" : "Show RAG Filters"}
+                    </span>
+                </button>
+                <slot name="additional-actions" />
+            </div>
+            
+            <button
+                class="send-button"
+                disabled={isProcessing || !inputText.trim()}
+                on:click={handleSubmit}
+            >
+                <Send />
+                <span class="sr-only">Send</span>
+            </button>
+        </div>
     </div>
-    <div class="actions">
-        <button
-            class="action-button"
-            on:click={() => (showFilters = !showFilters)}
-            aria-expanded={showFilters}
-        >
-            {showFilters ? "Hide RAG Filters" : "Show RAG Filters"}
-        </button>
 
-        <slot name="additional-actions" />
-    </div>
+    {#if showFilters}
+        <div class="filters" in:fade={{ duration: 200 }} out:fade={{ duration: 200 }}>
+            <form on:change={handleFormChange}>
+                {#each filterOptions as option}
+                    <div class="filter-row">
+                        <label for={option.field}>{option.label}</label>
+                        {#if option.type === "number"}
+                            <div class="filter-inputs">
+                                <select name={`${option.field}-op`} class="operator-select">
+                                    <option value="$eq">=</option>
+                                    <option value="$gte">{`>=`}</option>
+                                    <option value="$lte">{`<=`}</option>
+                                </select>
+                                <select name={option.field} class="value-select">
+                                    <option value="">Any</option>
+                                    {#if option.field.includes("Year")}
+                                        {#each Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i) as year}
+                                            <option value={year}>{year}</option>
+                                        {/each}
+                                    {:else}
+                                        {#each Array.from({ length: 12 }, (_, i) => i + 1) as month}
+                                            <option value={month}>{month}</option>
+                                        {/each}
+                                    {/if}
+                                </select>
+                            </div>
+                        {:else}
+                            <select name={option.field} class="full-width">
+                                <option value="">Any</option>
+                                <option value="md">Markdown</option>
+                            </select>
+                        {/if}
+                    </div>
+                {/each}
+            </form>
+        </div>
+    {/if}
 </div>
 
-{#if showFilters}
-    <div class="filters" in:fade={{ duration: 200 }} out:fade={{ duration: 200 }}>
-        <form on:change={handleFormChange}>
-            {#each filterOptions as option}
-                <div class="filter-row">
-                    <label for={option.field}>{option.label}</label>
-                    {#if option.type === "number"}
-                        <div class="filter-inputs">
-                            <select name={`${option.field}-op`} class="operator-select">
-                                <option value="$eq">=</option>
-                                <option value="$gte">{`>=`}</option>
-                                <option value="$lte">{`<=`}</option>
-                            </select>
-                            <select name={option.field} class="value-select">
-                                <option value="">Any</option>
-                                {#if option.field.includes("Year")}
-                                    {#each Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i) as year}
-                                        <option value={year}>{year}</option>
-                                    {/each}
-                                {:else}
-                                    {#each Array.from({ length: 12 }, (_, i) => i + 1) as month}
-                                        <option value={month}>{month}</option>
-                                    {/each}
-                                {/if}
-                            </select>
-                        </div>
-                    {:else}
-                        <select name={option.field} class="full-width">
-                            <option value="">Any</option>
-                            <option value="md">Markdown</option>
-                        </select>
-                    {/if}
-                </div>
-            {/each}
-        </form>
-    </div>
-{/if}
-
 <style>
-    .input-container {
+    .input-wrapper {
         border-top: 1px solid rgba(255, 255, 255, 0.1);
         padding-top: 1rem;
     }
 
-	.input-controls {
-		display: flex;
-		gap: 0.75rem;
-		align-items: flex-start;
-	}
+    .input-container {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 0.75rem;
+        min-height: 56px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
 
-	textarea {
-		flex: 1;
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 4px;
-		color: inherit;
-		padding: 0.75rem;
-		resize: none;
-		min-height: 40px;
-	}
+    textarea {
+        background: none;
+        border: none;
+        color: inherit;
+        padding: 0;
+        resize: none;
+        width: 100%;
+        font-family: inherit;
+        font-size: inherit;
+        min-height: 24px;
+        padding: 0.5rem 0.75rem;
+    }
 
-	textarea:focus {
-		outline: none;
-		border-color: rgba(255, 255, 255, 0.2);
-	}
+    textarea:focus {
+        outline: none;
+    }
 
-	.send-button {
-		background: rgb(99, 82, 171);
-		color: white;
-		border: none;
-		border-radius: 4px;
-		padding: 0.75rem 1.5rem;
-		cursor: pointer;
-		font-size: 0.9em;
-	}
+    .actions-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
 
-	.send-button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
+    .left-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
 
-	.filters {
-		background: rgba(0, 0, 0, 0.2);
-		border-radius: 4px;
-		padding: 1rem;
-		margin-top: 0.5rem;
-	}
+    .action-button {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        font-size: 0.9em;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
 
-	.filter-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 0.75rem;
-	}
+    .action-button :global(svg) {
+        width: 16px;
+        height: 16px;
+    }
 
-	.filter-row:last-child {
-		margin-bottom: 0;
-	}
+    .action-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
 
-	.filter-inputs {
-		display: flex;
-		gap: 0.5rem;
-	}
+    .send-button {
+        background: rgb(99, 82, 171);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        font-size: 0.9em;
+        min-width: 80px;
+    }
 
-	select {
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 4px;
-		color: inherit;
-		padding: 0.25rem 0.5rem;
-	}
+    .send-button :global(svg) {
+        width: 16px;
+        height: 16px;
+    }
 
-	.operator-select {
-		width: 50px;
-	}
+    .send-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 
-	.value-select {
-		width: 100px;
-	}
+    .filters {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
 
-	select.full-width {
-		width: 158px;
-	}
+    .filter-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
 
-	.actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.75rem;
-		margin-top: 1rem;
-		padding-top: 1rem;
-		border-top: 1px solid rgba(255, 255, 255, 0.1);
-	}
+    .filter-row:last-child {
+        margin-bottom: 0;
+    }
 
-	.action-button {
-		background: none;
-		border: none;
-		color: rgba(255, 255, 255, 0.6);
-		padding: 0.5rem 1rem;
-		cursor: pointer;
-		font-size: 0.9em;
-		text-align: left;
-	}
+    .filter-inputs {
+        display: flex;
+        gap: 0.5rem;
+    }
 
-	.action-button:hover {
-		background: rgba(255, 255, 255, 0.15);
-	}
+    select {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        color: inherit;
+        padding: 0.25rem 0.5rem;
+    }
 
-	@media (max-width: 600px) {
-		.filter-row {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 0.5rem;
-		}
+    .operator-select {
+        width: 50px;
+    }
 
-		.filter-inputs {
-			width: 100%;
-		}
+    .value-select {
+        width: 100px;
+    }
 
-		.value-select,
-		select.full-width {
-			flex: 1;
-		}
-	}
+    select.full-width {
+        width: 158px;
+    }
+
+    @media (max-width: 600px) {
+        .filter-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .filter-inputs {
+            width: 100%;
+        }
+
+        .value-select,
+        select.full-width {
+            flex: 1;
+        }
+
+        .actions-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .left-actions {
+            justify-content: stretch;
+        }
+
+        .action-button,
+        .send-button {
+            width: 100%;
+        }
+    }
 </style>

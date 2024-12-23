@@ -1,7 +1,9 @@
 <script lang="ts">
     import { fade, fly } from "svelte/transition";
+
     import type { Message } from "../types";
     import { parseMarkdown } from "../utils/markdown-parser";
+    import Copy from "./icons/copy.svelte";
 
     export let messages: Message[] = [];
     export let onCopyConversation: (content: string) => Promise<void>;
@@ -29,15 +31,18 @@
                             {message.role === "assistant" ? "🤖" : "👤"}
                         </span>
                         <div class="message-content">
-                            {@html parseMarkdown(message.content)}
+                            <div class="message-content-inner">
+                                {@html parseMarkdown(message.content)}
+                            </div>
+                            <div class="message-actions">
+                                <button class="copy-button" 
+                                    on:click={() => onCopyConversation(message.content)}
+                                    aria-label="Copy message">
+                                    <Copy />
+                                    <span class="sr-only">Copy message</span>
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="message-actions">
-                        <button class="copy-button" 
-                            on:click={() => onCopyConversation(message.content)}
-                            aria-label="Copy message">
-                            Copy
-                        </button>
                     </div>
                 </div>
             </div>
@@ -62,7 +67,7 @@
     .messages {
         flex: 1;
         overflow-y: auto;
-        padding: 1rem 0;
+        padding-bottom: 1rem;
     }
 
     .welcome-message {
@@ -110,8 +115,27 @@
         width: 100%;
         overflow: scroll;
     }
+    
+    .message-content .copy-button {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0px;
+        height: 16px;
+        width: 16px;
+        cursor: pointer;
+    }
 
-    /* Keep all the message content styles */
+    .message-content .copy-button:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .message-content .copy-button :global(svg) {
+        width: 16px;
+        height: 16px;
+    }
+
+
     .message-content :global(p:first-child),
     .message-content :global(h2:first-child) {
         margin-top: 0;
