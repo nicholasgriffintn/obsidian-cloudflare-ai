@@ -381,6 +381,32 @@ export default class CloudflareAIPlugin extends Plugin {
 					},
 				});
 
+				const nonDefaultTemplates = Array.from(templateManager.getTemplates()).filter(
+					([_, template]) => !template.default,
+				);
+
+				for (const [name, template] of nonDefaultTemplates) {
+					const commandId = `template-${name}`;
+					
+					this.addCommand({
+						id: commandId,
+						name: template.description || `Execute template: ${template.name}`,
+						editorCallback: (editor) => {
+							if (template.variables?.length) {
+								textGenerator.generateWithModal(editor, template.name, {
+									addNewline: true,
+								});
+							} else {
+								textGenerator.generateInEditor(editor, {
+									templateName: template.name,
+									replaceSelection: false,
+									addNewline: true,
+								});
+							}
+						},
+					});
+				}
+
 				this.logger.debug("loaded");
 			} catch (error) {
 				this.logger.error("Failed to load commands", {

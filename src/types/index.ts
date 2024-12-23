@@ -158,4 +158,5 @@ export interface Template {
 	prompt: string;
 	variables?: string[];
 	tags?: string[];
+	default?: boolean;
 }

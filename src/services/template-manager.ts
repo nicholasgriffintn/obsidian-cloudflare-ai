@@ -10,7 +10,7 @@ export class TemplateManager {
 
 	constructor(private app: App, private logger: Logger) {
 		Object.entries(DEFAULT_TEMPLATES).forEach(([key, template]) => {
-			this.templates.set(key, template);
+			this.templates.set(key, { ...template, default: true });
 		});
 	}
 
@@ -77,5 +77,9 @@ export class TemplateManager {
 
 	getTemplate(name: string): Template | undefined {
 		return this.templates.get(name);
+	}
+
+	getTemplates(): Map<string, Template> {
+		return this.templates;
 	}
 }

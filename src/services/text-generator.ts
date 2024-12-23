@@ -1,5 +1,5 @@
 import { Notice } from "obsidian";
-import type { App, Editor } from "obsidian";
+import type { App, Editor, EditorPosition } from "obsidian";
 
 import type { Logger } from "../lib/logger";
 import type { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
@@ -49,12 +49,30 @@ export class TextGenerationService {
 	): Promise<void> {
 		const selection = editor.getSelection();
 		const cursor = options.position || editor.getCursor();
+		const loadingText = "🤖 Generating...";
+		let loadingPosition: EditorPosition | undefined;
 
 		try {
-			let text: string;
+			if (options.replaceLine !== undefined) {
+				const line = editor.getLine(options.replaceLine);
+				editor.replaceRange(
+					loadingText,
+					{ line: options.replaceLine, ch: 0 },
+					{ line: options.replaceLine, ch: line.length },
+				);
+				loadingPosition = { line: options.replaceLine, ch: 0 };
+			} else if (options.replaceSelection && editor.somethingSelected()) {
+				const from = editor.getCursor('from');
+				editor.replaceSelection(loadingText);
+				loadingPosition = from;
+			} else {
+				editor.replaceRange(loadingText, cursor);
+				loadingPosition = cursor;
+			}
 
 			new Notice(`Generating ${options.templateName || "text"}...`);
 
+			let text: string;
 			if (options.templateName) {
 				const template = this.templateManager.getTemplate(options.templateName);
 				if (!template) {
@@ -78,21 +96,22 @@ export class TextGenerationService {
 				});
 			}
 
-			if (options.replaceLine !== undefined) {
-				const line = editor.getLine(options.replaceLine);
-				editor.replaceRange(
-					text,
-					{ line: options.replaceLine, ch: 0 },
-					{ line: options.replaceLine, ch: line.length },
-				);
-			} else if (options.replaceSelection && editor.somethingSelected()) {
-				editor.replaceSelection(text);
-			} else {
-				editor.replaceRange(text, cursor);
-			}
+			const loadingEndPosition = {
+				line: loadingPosition.line,
+				ch: loadingPosition.ch + loadingText.length
+			};
+			editor.replaceRange(text, loadingPosition, loadingEndPosition);
 
 			new Notice("Generated successfully");
 		} catch (error: unknown) {
+			if (loadingPosition) {
+				const loadingEndPosition = {
+					line: loadingPosition.line,
+					ch: loadingPosition.ch + loadingText.length
+				};
+				editor.replaceRange("", loadingPosition, loadingEndPosition);
+			}
+
 			this.logger.error("Generation failed", {
 				error: error instanceof Error ? error.message : String(error),
 			});
