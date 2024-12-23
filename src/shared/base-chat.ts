@@ -4,8 +4,8 @@ import type {
 	Message,
 	VectorizeFilter,
 	CloudflareAIPluginSettings,
-    VectorSearchResult,
-    VectorMatch,
+	VectorSearchResult,
+	VectorMatch,
 } from "../types";
 import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
 import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
@@ -37,7 +37,7 @@ export abstract class BaseChat {
 	) {
 		this.validateServices();
 		this.logger = new Logger();
-		this.contentEl = document.createElement('div');
+		this.contentEl = document.createElement("div");
 	}
 
 	private validateServices(): void {
@@ -248,7 +248,7 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 
 	public initializeComponent(
 		target: HTMLElement,
-		ComponentClass: typeof SvelteComponent
+		ComponentClass: typeof SvelteComponent,
 	): void {
 		const component = new ComponentClass({
 			target,
