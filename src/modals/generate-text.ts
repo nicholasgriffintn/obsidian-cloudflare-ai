@@ -6,10 +6,12 @@ export class TextGeneratorModal extends Modal {
 	private onSubmitCallback?: (
 		variables: Record<string, string>,
 	) => Promise<void>;
+	private inputSettings: Setting[] = [];
+	private generateButton?: Setting;
 	private isGenerating = false;
 
 	constructor(app: App, private template: Template) {
-		super(app);
+
 	}
 
 	onOpen() {
@@ -20,35 +22,47 @@ export class TextGeneratorModal extends Modal {
 			contentEl.createEl("p", { text: this.template.description });
 		}
 
-		if (this.isGenerating) {
-			contentEl.createEl("p", { text: "Generating..." });
-		}
-
 		if (this.template.variables) {
 			this.template.variables.forEach((variable) => {
-				new Setting(contentEl)
+				const setting = new Setting(contentEl)
 					.setName(variable)
 					.addText((text) =>
 						text.setPlaceholder(`Enter ${variable}`).onChange((value) => {
 							this.variables[variable] = value;
 						}),
-					)
-					.setDisabled(this.isGenerating);
+					);
+				this.inputSettings.push(setting);
 			});
 		}
 
-		new Setting(contentEl)
-			.addButton((btn) =>
-				btn
-					.setButtonText("Generate")
-					.setCta()
-					.onClick(async () => {
-						this.isGenerating = true;
+		if (this.isGenerating) {
+			contentEl.createEl("p", { text: "Generating..." });
+		}
+
+		this.generateButton = new Setting(contentEl).addButton((btn) =>
+			btn
+				.setButtonText("Generate")
+				.setCta()
+				.onClick(async () => {
+					this.setGenerating(true);
+					try {
 						await this.onSubmitCallback?.(this.variables);
 						this.close();
-					}),
-			)
-			.setDisabled(this.isGenerating);
+					} catch (error) {
+						this.setGenerating(false);
+					}
+				}),
+		);
+	}
+
+	private setGenerating(generating: boolean) {
+		this.isGenerating = generating;
+		this.inputSettings.forEach((setting) => setting.setDisabled(generating));
+		this.generateButton?.setDisabled(generating);
+		const btnEl = this.generateButton?.controlEl.querySelector("button");
+		if (btnEl) {
+			btnEl.textContent = generating ? "Generating..." : "Generate";
+		}
 	}
 
 	onClose() {
