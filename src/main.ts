@@ -8,11 +8,13 @@ import { SyncService } from "./services/sync";
 import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
 import type { CloudflareAIPluginSettings } from "./types";
 import { Logger } from "./lib/logger";
-import { DEFAULT_SETTINGS, PLUGIN_NAME } from "./constants";
+import { DEFAULT_SETTINGS, DEFAULT_TEMPLATES, PLUGIN_NAME } from "./constants";
 import { safeStorage } from "./lib/safeStorage";
 import { PLUGIN_PREFIX } from "./constants";
 import { ChatView } from "./views/chat";
 import { setGlobalLoggerConfig } from './lib/logger-config';
+import { TextGenerationService } from "./services/text-generator";
+import { TemplateManager } from "./services/template-manager";
 
 export default class CloudflareAIPlugin extends Plugin {
 	public settings!: CloudflareAIPluginSettings;
@@ -125,20 +127,8 @@ export default class CloudflareAIPlugin extends Plugin {
 			serviceName: PLUGIN_NAME
 		});
 
-		this.addCommand({
-			id: "start-chat",
-			name: "Start Chat",
-			callback: () => {
-				new ChatModal(
-					this.app,
-					this.logger,
-					this.gateway,
-					this.vectorize,
-					this.settings,
-					this.syncService,
-				).open();
-			},
-		});
+		const templateManager = new TemplateManager(this.app, this.logger);
+		await templateManager.loadCustomTemplates();
 
 		this.syncStatusBar = this.addStatusBarItem();
 		this.updateSyncStatus("Ready");
@@ -203,6 +193,84 @@ export default class CloudflareAIPlugin extends Plugin {
 		this.addRibbonIcon("message-circle", "Open AI Chat", () =>
 			this.activateView(),
 		);
+
+		this.addCommand({
+			id: "start-chat",
+			name: "Start Chat",
+			callback: () => {
+				new ChatModal(
+					this.app,
+					this.logger,
+					this.gateway,
+					this.vectorize,
+					this.settings,
+					this.syncService,
+				).open();
+			},
+		});
+
+		const textGen = new TextGenerationService(
+			this.app,
+			this.logger,
+			this.gateway,
+			this.settings,
+			templateManager
+		);
+
+		this.addCommand({
+			id: 'continue-writing',
+			name: 'Continue Writing',
+			editorCallback: (editor) => {
+				textGen.generateInEditor(editor, {
+					templateName: 'continue',
+					insertAtCursor: true,
+					addNewline: true
+				});
+			}
+		});
+
+		this.addCommand({
+			id: 'summarise-selection',
+			name: 'Summarise Selection',
+			editorCheckCallback: (checking, editor) => {
+				const hasSelection = editor.somethingSelected();
+				if (checking) return hasSelection;
+				
+				textGen.generateInEditor(editor, {
+					templateName: 'summarise',
+					replaceSelection: true
+				});
+			}
+		});
+
+		this.addCommand({
+			id: 'expand-selection',
+			name: 'Expand Selection',
+			editorCheckCallback: (checking, editor) => {
+				const hasSelection = editor.somethingSelected();
+				if (checking) return hasSelection;
+				
+				textGen.generateInEditor(editor, {
+					templateName: 'expand',
+					insertAtCursor: true,
+					addNewline: true
+				});
+			}
+		});
+
+		this.addCommand({
+			id: 'rewrite-selection',
+			name: 'Rewrite Selection',
+			editorCheckCallback: (checking, editor) => {
+				const hasSelection = editor.somethingSelected();
+				if (checking) return hasSelection;
+				
+				textGen.generateInEditor(editor, {
+					templateName: 'rewrite',
+					replaceSelection: true
+				});
+			}
+		});
 
 		this.logger.debug("loaded");
 	}

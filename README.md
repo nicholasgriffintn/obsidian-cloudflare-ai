@@ -13,6 +13,11 @@ A plugin for Obsidian that adds an AI assistant with RAG functionality via Cloud
   - Handles large notes by chunking them into smaller pieces.
 - 🔄 Auto-sync your Obsidian notes to the Vectorize index at a set interval.
 - 🔍 Filter the notes provided in the AI's context by created or modified dates as well as the type of note.
+- ⚙️ Generate text from templates including:
+  - Continue writing from the current text.
+  - Summarise the selected text.
+  - Expand on the selected text.
+  - Rewrite the selected text.
 
 This is currently a work in progress, however, for now, here's a quick preview of the chat with a response that uses matching notes for context:
 

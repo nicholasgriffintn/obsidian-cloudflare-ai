@@ -150,3 +150,11 @@ export interface RequestOptions {
 export interface TextResponse {
 	response: string;
 }
+
+export interface Template {
+	name: string;
+	description: string;
+	prompt: string;
+	variables?: string[];
+	tags?: string[];
+}
