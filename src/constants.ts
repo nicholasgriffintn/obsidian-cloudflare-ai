@@ -70,4 +70,10 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
 		description: 'Generate a title from the content',
 		prompt: 'Generate a clear, concise title for this text. Return only the title, no quotes or extra text:\n\n{{text}}'
 	},
+	'generate-text': {
+		name: 'Generate text',
+		description: 'Generate text with custom variables',
+		prompt: 'Write a {{style}} passage about {{topic}} that is {{length}} long.\n\nUse this context:\n{{text}}',
+		variables: ['style', 'topic', 'length']
+	},
 };

@@ -8,7 +8,7 @@ import { SyncService } from "./services/sync";
 import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
 import type { CloudflareAIPluginSettings } from "./types";
 import { Logger } from "./lib/logger";
-import { DEFAULT_SETTINGS, DEFAULT_TEMPLATES, PLUGIN_NAME } from "./constants";
+import { DEFAULT_SETTINGS, PLUGIN_NAME } from "./constants";
 import { safeStorage } from "./lib/safeStorage";
 import { PLUGIN_PREFIX } from "./constants";
 import { ChatView } from "./views/chat";
@@ -210,6 +210,7 @@ export default class CloudflareAIPlugin extends Plugin {
 		});
 
 		const textGen = new TextGenerationService(
+			this.app,
 			this.logger,
 			this.gateway,
 			this.settings,
@@ -284,6 +285,16 @@ export default class CloudflareAIPlugin extends Plugin {
 					replaceExisting: hasExistingTitle,
 					replaceLine: hasExistingTitle ? 0 : undefined,
 					prependHash: true,
+					addNewline: true
+				});
+			}
+		});
+
+		this.addCommand({
+			id: 'generate-text-with-variables',
+			name: 'Generate Text With Variables',
+			editorCallback: (editor) => {
+				textGen.generateWithModal(editor, 'generate-text', {
 					addNewline: true
 				});
 			}

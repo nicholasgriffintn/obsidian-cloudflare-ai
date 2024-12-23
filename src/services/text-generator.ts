@@ -1,14 +1,16 @@
 import { Notice } from "obsidian";
-import type { Editor } from "obsidian";
+import type { App, Editor } from "obsidian";
 
 import type { Logger } from "../lib/logger";
 import type { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
 import type { CloudflareAIPluginSettings } from "../types";
 import type { TemplateManager } from "./template-manager";
 import type { Template } from "../types";
+import { TextGeneratorModal } from "../modals/generate-text";
 
 export class TextGenerationService {
 	constructor(
+		private app: App,
 		private logger: Logger,
 		private gateway: CloudflareAIGateway,
 		private settings: CloudflareAIPluginSettings,
@@ -42,6 +44,7 @@ export class TextGenerationService {
 			replaceExisting?: boolean;
 			replaceLine?: number;
 			addNewline?: boolean;
+			text?: string;
 		} = {},
 	): Promise<void> {
 		const selection = editor.getSelection();
@@ -59,7 +62,7 @@ export class TextGenerationService {
 				}
 
 				text = await this.generateFromTemplate(template, {
-					text: selection || editor.getValue()
+					text: options.text || selection || editor.getValue()
 				});
 
 				if (options.prependHash && !text.startsWith('#')) {
@@ -105,6 +108,10 @@ export class TextGenerationService {
 		maxTokens?: number;
 		temperature?: number;
 	}): Promise<string> {
+        if (!options.prompt) {
+            throw new Error("Prompt is required");
+        }
+
 		const response = await this.gateway.generateText([
 			{
 				role: "user",
@@ -113,5 +120,51 @@ export class TextGenerationService {
 		]);
 
 		return response;
+	}
+
+	async generateWithModal(
+		editor: Editor,
+		templateName: string,
+		options: {
+			position?: { line: number; ch: number };
+			prependHash?: boolean;
+			replaceExisting?: boolean;
+			replaceLine?: number;
+			addNewline?: boolean;
+		} = {}
+	): Promise<void> {
+		const template = this.templateManager.getTemplate(templateName);
+		if (!template) {
+			throw new Error(`Template ${templateName} not found`);
+		}
+
+		const modal = new TextGeneratorModal(this.app, template);
+		
+		modal.onSubmit(async (variables) => {
+            modal.close();
+            
+            new Notice("Generating...");
+
+			const text = await this.generateFromTemplate(template, {
+				...variables,
+				text: editor.getValue()
+			});
+
+			if (options.replaceLine !== undefined) {
+				const line = editor.getLine(options.replaceLine);
+				editor.replaceRange(
+					text,
+					{ line: options.replaceLine, ch: 0 },
+					{ line: options.replaceLine, ch: line.length }
+				);
+			} else {
+				const cursor = options.position || editor.getCursor();
+				editor.replaceRange(text, cursor);
+			}
+
+			new Notice("Generated successfully");
+		});
+
+		modal.open();
 	}
 }

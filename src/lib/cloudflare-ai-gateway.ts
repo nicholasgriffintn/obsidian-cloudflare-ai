@@ -169,6 +169,11 @@ export class CloudflareAIGateway {
 	): Promise<string> {
 		try {
 			this.validateConfig();
+
+			if (!messages.length) {
+				throw new Error("Messages are required");
+			}
+
 			const response = await this.makeRequest<TextResponse>({
 				modelId: this.modelId,
 				messages,
