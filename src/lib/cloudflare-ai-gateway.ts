@@ -1,17 +1,17 @@
-import { Notice, request } from "obsidian";
+import { Notice } from "obsidian";
 import type {
 	Message,
 	RequestOptions,
-	CloudflareResponse,
-	TextResponse,
 	EmbeddingResponse,
 } from "../types";
 import type { Logger } from "./logger";
+import { ApiService } from "../services/api";
 
 const BASE_AI_GATEWAY_URL = "https://gateway.ai.cloudflare.com/v1";
 
 export class CloudflareAIGateway {
 	private readonly email: string = "test@test.com";
+	private readonly apiService: ApiService;
 
 	constructor(
 		private readonly logger: Logger,
@@ -21,7 +21,9 @@ export class CloudflareAIGateway {
 		private readonly modelId: string,
 		private readonly maxTokens: number,
 		private readonly temperature: number,
-	) {}
+	) {
+		this.apiService = new ApiService(logger);
+	}
 
 	private validateConfig(): void {
 		if (!this.cloudflareAccountId) {
@@ -54,8 +56,15 @@ export class CloudflareAIGateway {
 		};
 
 		if (options.type === "text") {
-			if (options.messages) body.messages = options.messages;
-			if (options.prompt) body.prompt = options.prompt;
+			if (options.messages) {
+				body.messages = options.messages;
+			}
+			if (options.prompt) {
+				body.prompt = options.prompt;
+			}
+			if (options.shouldStream) {
+				body.stream = true;
+			}
 			body.max_tokens = this.maxTokens;
 			body.temperature = this.temperature;
 		} else if (options.type === "embedding") {
@@ -84,7 +93,8 @@ export class CloudflareAIGateway {
 		shouldStream = false,
 		type = "text",
 		maxRetries = 3,
-	}: RequestOptions & { maxRetries?: number }): Promise<T> {
+		onToken,
+	}: RequestOptions & { maxRetries?: number, onToken?: (token: string, isFirst: boolean) => void }): Promise<T> {
 		let attempt = 0;
 		while (attempt < maxRetries) {
 			try {
@@ -101,57 +111,21 @@ export class CloudflareAIGateway {
 					type,
 				});
 
-				const response = await request({
-					url: this.getEndpointUrl(modelId),
-					method: "POST",
-					headers: {
+				const response = await this.apiService.post<T>(
+					this.getEndpointUrl(modelId),
+					body,
+					{
 						Authorization: `Bearer ${this.cloudflareAiApiKey}`,
-						"Content-Type": "application/json",
 						"cf-aig-metadata": JSON.stringify({ email: this.email }),
+						"Content-Type": "application/json",
 					},
-					body: JSON.stringify(body),
-					throw: false,
-				});
-
-				let data: CloudflareResponse<T>;
-				try {
-					data = JSON.parse(response);
-				} catch (error) {
-					if (attempt < maxRetries - 1) {
-						this.logger.warn(
-							`Retry ${attempt + 1}/${maxRetries} due to invalid JSON`,
-						);
-						await new Promise((resolve) =>
-							setTimeout(resolve, Math.pow(2, attempt) * 1000),
-						);
-						attempt++;
-						continue;
+					{
+						stream: shouldStream,
+						onToken,
 					}
-					throw new Error("Invalid JSON response from AI Gateway");
-				}
+				);
 
-				if (!data?.success) {
-					const errorMsg =
-						data.errors?.map((error) => error.message).join(", ") ??
-						"Unknown error from AI Gateway";
-					if (errorMsg.includes("rate limit") && attempt < maxRetries - 1) {
-						this.logger.warn(
-							`Retry ${attempt + 1}/${maxRetries} due to rate limit`,
-						);
-						await new Promise((resolve) =>
-							setTimeout(resolve, Math.pow(2, attempt) * 1000),
-						);
-						attempt++;
-						continue;
-					}
-					throw new Error(errorMsg);
-				}
-
-				if (!data.result) {
-					throw new Error("No result from AI Gateway");
-				}
-
-				return data.result;
+				return response;
 			} catch (error) {
 				if (attempt === maxRetries - 1) {
 					this.displayError(error);
@@ -165,7 +139,7 @@ export class CloudflareAIGateway {
 
 	async generateText(
 		messages: Message[],
-		htmlElement?: HTMLElement,
+		onToken?: (token: string, isFirst: boolean) => void
 	): Promise<string> {
 		try {
 			this.validateConfig();
@@ -174,18 +148,15 @@ export class CloudflareAIGateway {
 				throw new Error("Messages are required");
 			}
 
-			const response = await this.makeRequest<TextResponse>({
+			const response = await this.makeRequest<string>({
 				modelId: this.modelId,
 				messages,
-				shouldStream: Boolean(htmlElement),
+				shouldStream: Boolean(onToken),
 				type: "text",
+				onToken: onToken || undefined
 			});
 
-			if (!response || !response.response) {
-				throw new Error("Invalid response from AI Gateway");
-			}
-
-			return response.response;
+			return response;
 		} catch (error) {
 			if (error instanceof Error) {
 				this.logger.error(`Text generation failed: ${error.message}`);

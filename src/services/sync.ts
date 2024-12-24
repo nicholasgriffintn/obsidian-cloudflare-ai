@@ -1,4 +1,5 @@
 import { App, TFile } from "obsidian";
+
 import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
 import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
 import type { SyncResult } from "../types";

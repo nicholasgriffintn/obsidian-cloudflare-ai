@@ -3,9 +3,8 @@ import type { App, Editor, EditorPosition } from "obsidian";
 
 import type { Logger } from "../lib/logger";
 import type { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
-import type { CloudflareAIPluginSettings } from "../types";
+import type { CloudflareAIPluginSettings, Template } from "../types";
 import type { TemplateManager } from "./template-manager";
-import type { Template } from "../types";
 import { TextGeneratorModal } from "../modals/generate-text";
 
 export class TextGenerationService {

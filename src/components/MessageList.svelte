@@ -10,6 +10,7 @@
     export let isProcessing: boolean = false;
 
     let messagesContainer: HTMLDivElement;
+    let streamingContent = "";
 
     $: if (messages && messagesContainer) {
         setTimeout(() => {
@@ -20,48 +21,63 @@
     }
 </script>
 
-{#if messages && messages.length > 0}
-    <div class="messages" bind:this={messagesContainer} role="log" aria-live="polite">
-        {#each messages.filter((m) => m.role !== "system") as message (message.content)}
-            <div class="message-wrapper {message.role}" role="article" 
-                in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
-                <div class="message">
-                    <div class="message-content-wrapper">
-                        <span class="role-indicator" aria-hidden="true">
-                            {message.role === "assistant" ? "🤖" : "👤"}
-                        </span>
-                        <div class="message-content">
-                            <div class="message-content-inner">
-                                {@html parseMarkdown(message.content)}
-                            </div>
-                            <div class="message-actions">
-                                <button class="copy-button" 
-                                    on:click={() => onCopyMessage(message.content)}
-                                    aria-label="Copy message">
-                                    <Copy />
-                                    <span class="sr-only">Copy message</span>
-                                </button>
-                            </div>
+{#if messages.length <= 0}
+    <div class="welcome-message">
+        <h3>Welcome to the Chat 👋</h3>
+        <p>Ask me anything about your notes, or just general questions.</p>
+    </div>
+{/if}
+
+<div class="messages" bind:this={messagesContainer} role="log" aria-live="polite">
+    {#each messages.filter((m) => m.role !== "system") as message (message.content)}
+        <div class="message-wrapper {message.role}" role="article" 
+            in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
+            <div class="message">
+                <div class="message-content-wrapper">
+                    <span class="role-indicator" aria-hidden="true">
+                        {message.role === "assistant" ? "🤖" : "👤"}
+                    </span>
+                    <div class="message-content">
+                        <div class="message-content-inner">
+                            {@html parseMarkdown(message.content)}
+                        </div>
+                        <div class="message-actions">
+                            <button class="copy-button" 
+                                on:click={() => onCopyMessage(message.content)}
+                                aria-label="Copy message">
+                                <Copy />
+                                <span class="sr-only">Copy message</span>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        {/each}
-    </div>
-{:else}
-    <div class="welcome-message" in:fade={{ duration: 300 }}>
-        <h3>Welcome to the Chat! 👋</h3>
-        <p>Send a message to start a conversation with your notes.</p>
-    </div>
-{/if}
+        </div>
+    {/each}
 
-{#if isProcessing}
-<div class="typing-indicator" in:fade={{ duration: 200 }}>
-    <span>●</span>
-    <span>●</span>
-    <span>●</span>
+    {#if isProcessing}
+        <div class="message-wrapper assistant" role="article" 
+            in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
+            <div class="message">
+                <div class="message-content-wrapper">
+                    <span class="role-indicator" aria-hidden="true">🤖</span>
+                    <div class="message-content">
+                        <div class="message-content-inner">
+                            {#if !streamingContent}
+                                <div class="typing-indicator">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            {/if}
+                            {@html parseMarkdown(streamingContent)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {/if}
 </div>
-{/if}
 
 <style>
     .messages {

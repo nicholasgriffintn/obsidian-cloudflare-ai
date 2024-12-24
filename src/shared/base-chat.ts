@@ -226,9 +226,15 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 			);
 			this.apiMessages.push({ ...userMessage, content: messageWithContext });
 
+			let streamingContent = "";
 			const response = await this.gateway.generateText(
 				this.apiMessages,
-				this.contentEl,
+				(token: string, isFirst: boolean) => {
+					streamingContent = isFirst ? token : streamingContent + token;
+					if (this.component) {
+						this.component.$set({ streamingContent });
+					}
+				}
 			);
 
 			if (!response) {
