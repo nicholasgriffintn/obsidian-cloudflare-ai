@@ -88,52 +88,38 @@ export class CloudflareAIGateway {
 		prompt,
 		shouldStream = false,
 		type = "text",
-		maxRetries = 3,
 		onToken,
 	}: RequestOptions & {
-		maxRetries?: number;
 		onToken?: (token: string, isFirst: boolean) => void;
 	}): Promise<T> {
-		let attempt = 0;
-		while (attempt < maxRetries) {
-			try {
-				this.validateConfig();
-				if (!messages && !prompt) {
-					throw new Error("Either messages or prompt is required");
-				}
-
-				const body = this.buildRequestBody({
-					modelId,
-					messages,
-					prompt,
-					shouldStream,
-					type,
-				});
-
-				const response = await this.apiService.post<T>(
-					this.getEndpointUrl(modelId),
-					body,
-					{
-						Authorization: `Bearer ${this.cloudflareAiApiKey}`,
-						"cf-aig-metadata": JSON.stringify({ email: this.email }),
-						"Content-Type": "application/json",
-					},
-					{
-						stream: shouldStream,
-						onToken,
-					},
-				);
-
-				return response;
-			} catch (error) {
-				if (attempt === maxRetries - 1) {
-					this.displayError(error);
-					throw error;
-				}
-				attempt++;
-			}
+		this.validateConfig();
+		if (!messages && !prompt) {
+			throw new Error("Either messages or prompt is required");
 		}
-		throw new Error("Max retries exceeded");
+
+		const body = this.buildRequestBody({
+			modelId,
+			messages,
+			prompt,
+			shouldStream,
+			type,
+		});
+
+		const response = await this.apiService.post<T>(
+			this.getEndpointUrl(modelId),
+			body,
+			{
+				Authorization: `Bearer ${this.cloudflareAiApiKey}`,
+				"cf-aig-metadata": JSON.stringify({ email: this.email }),
+				"Content-Type": "application/json",
+			},
+			{
+				stream: shouldStream,
+				onToken,
+			},
+		);
+
+		return response;
 	}
 
 	async generateText(
