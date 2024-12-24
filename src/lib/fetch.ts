@@ -16,13 +16,13 @@ export async function fetchWithRequestUrl(input: RequestInfo, init?: RequestInit
         }
     }
 
-
     const params: RequestUrlParam = {
         url,
         method: options?.method || 'GET',
         headers: options?.headers as Record<string, string>,
         body: options?.body as string | ArrayBuffer,
         throw: false,
+        stream: Boolean(options?.headers?.['Accept'] === 'text/event-stream'),
     };
 
     if (options?.headers && (options.headers as any)['Content-Type']) {
@@ -49,26 +49,7 @@ export async function fetchWithRequestUrl(input: RequestInfo, init?: RequestInit
                 throw new Error('Response cloning is not supported in this polyfill');
             },
 
-            body: new ReadableStream({
-                start(controller) {
-                    const chunkSize = 1024;
-                    const text = response.text;
-                    let offset = 0;
-
-                    function pushChunk() {
-                        if (offset < text.length) {
-                            const chunk = text.slice(offset, offset + chunkSize);
-                            controller.enqueue(new TextEncoder().encode(chunk));
-                            offset += chunkSize;
-                            setTimeout(pushChunk, 10);
-                        } else {
-                            controller.close();
-                        }
-                    }
-
-                    pushChunk();
-                }
-            })
+            body: params.stream ? createReadableStream(response.text) : null
         };
 
         if (!fetchResponse.ok && options?.throw !== false) {
@@ -114,4 +95,26 @@ export async function requestToObject(request: Request): Promise<Record<string, 
     }
 
     return obj;
+}
+
+function createReadableStream(text: string): ReadableStream {
+    const encoder = new TextEncoder();
+    let offset = 0;
+    const lines = text.split('\n');
+
+    return new ReadableStream({
+        start(controller) {
+            function pushChunk() {
+                if (offset < lines.length) {
+                    const line = lines[offset] + '\n';
+                    controller.enqueue(encoder.encode(line));
+                    offset++;
+                    setTimeout(pushChunk, 10);
+                } else {
+                    controller.close();
+                }
+            }
+            pushChunk();
+        }
+    });
 }

@@ -42,11 +42,18 @@ export class ApiService {
 
     async post<T>(url: string, body: any, headers?: Record<string, string>, options?: Record<string, any>): Promise<T> {
         try {
+            this.logger.debug("Starting API request", { url, body });
             const response = await this.proxyService.fetch(url, {
                 method: "POST",
-                headers,
+                headers: {
+                    ...headers,
+                    'Accept': 'text/event-stream',
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify(body),
             });
+
+            this.logger.debug("API request completed", { response });
 
             if (!response.ok) {
                 const resText = await response.text();
@@ -89,6 +96,8 @@ export class ApiService {
         let isFirst = true;
         let text = "";
 
+        this.logger.debug("Starting streaming response");
+
         while (!done) {
             if (options?.signal?.aborted) {
                 this.logger.info("Streaming response aborted");
@@ -98,14 +107,22 @@ export class ApiService {
             const { value, done: doneReading } = await reader.read();
             done = doneReading;
 
-            const decodedVal = decoder.decode(value, { stream: true });
-            const chunkValue = this.sanitizeStreamingResponse(decodedVal, response);
+            if (value) {
+                const decodedVal = decoder.decode(value, { stream: true });
+                this.logger.debug("Received chunk:", { decodedVal });
+                
+                const chunkValue = this.sanitizeStreamingResponse(decodedVal, response);
+                this.logger.debug("Sanitized chunk:", { chunkValue });
 
-            text += chunkValue || "";
-            await options?.onToken?.(chunkValue, isFirst);
-            isFirst = false;
+                if (chunkValue) {
+                    text += chunkValue;
+                    options?.onToken?.(chunkValue, isFirst);
+                    isFirst = false;
+                }
+            }
         }
 
+        this.logger.debug("Finished streaming response");
         return text;
     }
 }

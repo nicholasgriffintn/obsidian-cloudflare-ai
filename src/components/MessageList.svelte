@@ -8,11 +8,19 @@
     export let messages: Message[] = [];
     export let onCopyMessage: (message: string) => Promise<void>;
     export let isProcessing: boolean = false;
+    export let streamingContent: string = "";
 
     let messagesContainer: HTMLDivElement;
-    let streamingContent = "";
 
     $: if (messages && messagesContainer) {
+        setTimeout(() => {
+            if (messagesContainer) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }, 0);
+    }
+
+    $: if (streamingContent && messagesContainer) {
         setTimeout(() => {
             if (messagesContainer) {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;

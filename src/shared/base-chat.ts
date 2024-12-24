@@ -234,6 +234,7 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 					if (this.component) {
 						this.component.$set({ streamingContent });
 					}
+					this.updateComponent();
 				}
 			);
 
