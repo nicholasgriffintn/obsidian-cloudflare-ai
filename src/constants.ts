@@ -14,21 +14,25 @@ export enum ModelIds {
 	LLAMA_70B = "@cf/meta/llama-3.1-70b-instruct",
 }
 
+export const defaultModelId = ModelIds.LLAMA_8B_FAST;
+
 export enum EmbeddingModelIds {
 	BGE_SMALL = "@cf/baai/bge-small-en-v1.5",
 	BGE_BASE = "@cf/baai/bge-base-en-v1.5",
 	BGE_LARGE = "@cf/baai/bge-large-en-v1.5",
 }
 
+export const defaultEmbeddingModelId = EmbeddingModelIds.BGE_BASE;
+
 export const DEFAULT_SETTINGS: CloudflareAIPluginSettings = {
 	cloudflareAccountId: "",
 	cloudflareAiGatewayId: "",
 	cloudflareAiApiKey: "",
 	cloudflareVectorizeApiKey: "",
-	modelId: ModelIds.LLAMA_70B_FAST,
+	modelId: defaultModelId,
 	maxTokens: 256,
 	temperature: 0.6,
-	textEmbeddingsModelId: EmbeddingModelIds.BGE_BASE,
+	textEmbeddingsModelId: defaultEmbeddingModelId,
 	vectorizeIndexName: "obsidian-notes",
 	topK: 3,
 	minSimilarityScore: 0.7,

@@ -1,9 +1,5 @@
 import { Notice } from "obsidian";
-import type {
-	Message,
-	RequestOptions,
-	EmbeddingResponse,
-} from "../types";
+import type { Message, RequestOptions, EmbeddingResponse } from "../types";
 import type { Logger } from "../lib/logger";
 import { ApiService } from "./api";
 
@@ -94,7 +90,10 @@ export class CloudflareAIGateway {
 		type = "text",
 		maxRetries = 3,
 		onToken,
-	}: RequestOptions & { maxRetries?: number, onToken?: (token: string, isFirst: boolean) => void }): Promise<T> {
+	}: RequestOptions & {
+		maxRetries?: number;
+		onToken?: (token: string, isFirst: boolean) => void;
+	}): Promise<T> {
 		let attempt = 0;
 		while (attempt < maxRetries) {
 			try {
@@ -122,7 +121,7 @@ export class CloudflareAIGateway {
 					{
 						stream: shouldStream,
 						onToken,
-					}
+					},
 				);
 
 				return response;
@@ -139,7 +138,7 @@ export class CloudflareAIGateway {
 
 	async generateText(
 		messages: Message[],
-		onToken?: (token: string, isFirst: boolean) => void
+		onToken?: (token: string, isFirst: boolean) => void,
 	): Promise<string> {
 		try {
 			this.validateConfig();
@@ -153,7 +152,7 @@ export class CloudflareAIGateway {
 				messages,
 				shouldStream: Boolean(onToken),
 				type: "text",
-				onToken: onToken || undefined
+				onToken: onToken || undefined,
 			});
 
 			return response;

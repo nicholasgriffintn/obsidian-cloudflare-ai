@@ -1,5 +1,6 @@
 <script lang="ts">
     import { fade, fly } from "svelte/transition";
+    import { afterUpdate } from 'svelte';
 
     import type { Message } from "../types";
     import { parseMarkdown } from "../utils/markdown-parser";
@@ -11,22 +12,29 @@
     export let streamingContent: string = "";
 
     let messagesContainer: HTMLDivElement;
+    let userHasScrolled = false;
 
-    $: if (messages && messagesContainer) {
-        setTimeout(() => {
-            if (messagesContainer) {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-        }, 0);
+    function handleScroll() {
+        if (!messagesContainer) return;
+        
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
+        
+        if (!isAtBottom) {
+            userHasScrolled = true;
+        } else {
+            userHasScrolled = false;
+        }
     }
 
-    $: if (streamingContent && messagesContainer) {
-        setTimeout(() => {
-            if (messagesContainer) {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-        }, 0);
-    }
+    afterUpdate(() => {
+        if (messagesContainer && !userHasScrolled) {
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                behavior: 'instant'
+            });
+        }
+    });
 </script>
 
 {#if messages.length <= 0}
@@ -36,8 +44,12 @@
     </div>
 {/if}
 
-<div class="messages" bind:this={messagesContainer} role="log" aria-live="polite">
-    {#each messages.filter((m) => m.role !== "system") as message (message.content)}
+<div class="messages" 
+    bind:this={messagesContainer} 
+    on:scroll={handleScroll}
+    role="log" 
+    aria-live="polite">
+    {#each messages.filter((m) => m.role !== "system") as message, i (i)}
         <div class="message-wrapper {message.role}" role="article" 
             in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
             <div class="message">
@@ -47,7 +59,26 @@
                     </span>
                     <div class="message-content">
                         <div class="message-content-inner">
-                            {@html parseMarkdown(message.content)}
+                            {@html parseMarkdown(
+                                message.role === "assistant" && 
+                                i === messages.length - 1 && 
+                                isProcessing
+                                    ? streamingContent
+                                    : message.content
+                            )}
+                            {#if message.role === "assistant" && 
+                                i === messages.length - 1 && 
+                                isProcessing}
+                                {#if streamingContent}
+                                    <span class="cursor">▋</span>
+                                {:else}
+                                    <div class="typing-indicator">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                {/if}
+                            {/if}
                         </div>
                         <div class="message-actions">
                             <button class="copy-button" 
@@ -62,29 +93,6 @@
             </div>
         </div>
     {/each}
-
-    {#if isProcessing}
-        <div class="message-wrapper assistant" role="article" 
-            in:fly={{ y: 20, duration: 300 }} out:fade={{ duration: 200 }}>
-            <div class="message">
-                <div class="message-content-wrapper">
-                    <span class="role-indicator" aria-hidden="true">🤖</span>
-                    <div class="message-content">
-                        <div class="message-content-inner">
-                            {#if !streamingContent}
-                                <div class="typing-indicator">
-                                    <span></span>
-                                    <span></span>
-                                    <span></span>
-                                </div>
-                            {/if}
-                            {@html parseMarkdown(streamingContent)}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {/if}
 </div>
 
 <style>
@@ -225,5 +233,17 @@
         40% {
             transform: scale(1);
         }
+    }
+
+    .cursor {
+        display: inline-block;
+        width: 0.6em;
+        animation: blink 1s step-end infinite;
+        opacity: 0.7;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 0; }
+        50% { opacity: 1; }
     }
 </style>

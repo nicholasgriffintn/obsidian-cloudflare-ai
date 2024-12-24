@@ -5,9 +5,10 @@
 
     export let messages: Message[] = [];
     export let isProcessing: boolean = false;
+    export let streamingContent: string = "";
     export let onSendMessage: (message: string, filters: VectorizeFilter) => Promise<void>;
     export let onClearMessages: () => Promise<void>;
-    export let onCopyConversation: () => Promise<void>;
+    export let onCopyConversation: (content: string) => Promise<void>;
     export let onCopyMessage: (message: string) => Promise<void>;
 </script>
 
@@ -15,6 +16,7 @@
     <MessageList
         {isProcessing}
         {messages}
+        {streamingContent}
         {onCopyMessage}
     />
     <ChatInput 
@@ -27,10 +29,17 @@
 </div>
 
 <style>
-.chat-view {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 1rem;
-}
+    .chat-view {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 1rem;
+		color: #fff;
+		font-family:
+			system-ui,
+			-apple-system,
+			BlinkMacSystemFont,
+			"Segoe UI",
+			sans-serif;
+    }
 </style>

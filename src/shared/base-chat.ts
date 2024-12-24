@@ -203,17 +203,28 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 			if (!message.trim()) return;
 
 			this.isProcessing = true;
+			let streamingContent = "";
+			if (this.component) {
+				this.component.$set({ streamingContent });
+			}
 			this.updateComponent();
 
 			this.logger.debug("Sending message", { message, filters });
 
+			const userMessage: Message = { role: "user", content: message };
+			this.messages.push(userMessage);
+
+			const assistantMessage: Message = {
+				role: "assistant",
+				content: "",
+			};
+			this.messages.push(assistantMessage);
+
+			this.updateComponent();
+
 			if (!this.apiMessages.some((msg) => msg.role === "system")) {
 				this.apiMessages.push(this.DEFAULT_SYSTEM_MESSAGE);
 			}
-
-			const userMessage: Message = { role: "user", content: message };
-			this.messages.push(userMessage);
-			this.updateComponent();
 
 			const embedding = await this.generateEmbedding(message);
 			const searchResults = embedding
@@ -226,28 +237,29 @@ Instructions: Please reference the source notes using their links (${sourceLinks
 			);
 			this.apiMessages.push({ ...userMessage, content: messageWithContext });
 
-			let streamingContent = "";
 			const response = await this.gateway.generateText(
 				this.apiMessages,
 				(token: string, isFirst: boolean) => {
 					streamingContent = isFirst ? token : streamingContent + token;
-					if (this.component) {
-						this.component.$set({ streamingContent });
-					}
-					this.updateComponent();
-				}
+					assistantMessage.content = streamingContent;
+					requestAnimationFrame(() => {
+						if (this.component) {
+							this.component.$set({
+								messages: [...this.messages],
+								streamingContent,
+							});
+						}
+					});
+				},
 			);
 
 			if (!response) {
 				throw new Error("No response from AI Gateway");
 			}
 
-			const assistantMessage: Message = {
-				role: "assistant",
-				content: response,
-			};
-			this.messages.push(assistantMessage);
+			assistantMessage.content = response;
 			this.apiMessages.push(assistantMessage);
+			this.updateComponent();
 		} catch (error) {
 			this.logger.error("Error in message processing:", {
 				error: error instanceof Error ? error.message : String(error),

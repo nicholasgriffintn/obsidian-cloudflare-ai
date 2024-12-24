@@ -5,6 +5,7 @@
 
 	export let messages: Message[] = [];
 	export let isProcessing: boolean = false;
+    export let streamingContent: string = "";
 	export let onSendMessage: (message: string, filters: VectorizeFilter) => Promise<void>;
 	export let onClearMessages: () => Promise<void>;
 	export let onCopyConversation: (content: string) => Promise<void>;
@@ -15,6 +16,7 @@
     <MessageList
         {isProcessing}
         {messages}
+        {streamingContent}
         {onCopyMessage}
     />
     <ChatInput 

@@ -21,7 +21,6 @@ https://github.com/user-attachments/assets/01f17af8-3adb-4a22-9dad-86948064353c
 
 ## TODO
 
-- [ ] We've partially implemented streaming responses, but it's not working as expected, more needs to be done to get it working with CloudFlare I think, finding it difficult to get the streaming to work.
 - [ ] Add the ability to send properties in the metadata.
 - [ ] Add a text generation mode where you can insert the response into the current note.
 - [ ] Add an image generation mode where you can insert the response into the current note.
