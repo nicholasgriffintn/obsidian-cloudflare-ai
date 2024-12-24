@@ -1,4 +1,4 @@
-import { App, TFile } from "obsidian";
+import { App, TFile, Notice } from "obsidian";
 
 import { CloudflareVectorize } from "./cloudflare-vectorize";
 import { CloudflareAIGateway } from "./cloudflare-ai-gateway";
@@ -18,8 +18,6 @@ export class SyncService {
 	) {}
 
 	async sync(): Promise<SyncResult> {
-		this.logger.debug("Sync started");
-
 		const result: SyncResult = {
 			successful: 0,
 			failed: 0,
@@ -33,8 +31,6 @@ export class SyncService {
 			.filter((file) => !this.isFileInIgnoredFolder(file))
 			.filter((file) => file.extension === "md");
 
-		this.logger.debug("Found files", { files: filteredFiles });
-
 		const filesToSync = [];
 		for (const file of filteredFiles) {
 			const vectorId = this.createVectorId(file.name);
@@ -46,7 +42,7 @@ export class SyncService {
 			}
 		}
 
-		this.logger.info(
+		new Notice(
 			`Starting sync for ${filesToSync.length} files (${
 				filteredFiles.length - filesToSync.length
 			} already up to date)`,
@@ -62,7 +58,7 @@ export class SyncService {
 			);
 		}
 
-		this.logger.info("Sync completed", result);
+		new Notice("Sync completed");
 		return result;
 	}
 
