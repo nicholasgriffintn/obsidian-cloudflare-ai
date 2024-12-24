@@ -22,7 +22,6 @@ https://github.com/user-attachments/assets/01f17af8-3adb-4a22-9dad-86948064353c
 ## TODO
 
 - [ ] Add the ability to send properties in the metadata.
-- [ ] Add a text generation mode where you can insert the response into the current note.
 - [ ] Add an image generation mode where you can insert the response into the current note.
 - [ ] Add a speech to text mode.
 - [ ] Look at adding other providers like Anthropic, OpenAI, etc.

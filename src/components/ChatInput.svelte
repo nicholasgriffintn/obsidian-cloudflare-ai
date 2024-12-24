@@ -49,12 +49,16 @@
 
     const handleSubmit = async () => {
         if (inputText.trim() && !isProcessing) {
+            const messageToSend = inputText.trim();
+            inputText = "";
+            textArea.style.height = "24px";
+            inputContainer.style.height = "90px";
+            
             try {
-                await onSendMessage(inputText.trim(), filters);
-                inputText = "";
-                adjustTextAreaHeight();
+                await onSendMessage(messageToSend, filters);
             } catch (error) {
                 console.error("Error sending message:", error);
+                inputText = messageToSend;
             }
         }
     };

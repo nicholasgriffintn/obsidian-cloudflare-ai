@@ -1,4 +1,5 @@
 import { Notice } from "obsidian";
+
 import type { Message, RequestOptions, EmbeddingResponse } from "../types";
 import type { Logger } from "../lib/logger";
 import { ApiService } from "./api";
