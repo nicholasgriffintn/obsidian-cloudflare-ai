@@ -106,7 +106,7 @@ function createFetchResponse(
 						const line = lines[lineIndex] + '\n';
 						controller.enqueue(encoder.encode(line));
 						lineIndex++;
-						setTimeout(pushChunk, 10);
+						setTimeout(pushChunk, 1);
 					} else {
 						controller.close();
 					}
