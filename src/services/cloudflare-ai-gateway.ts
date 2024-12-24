@@ -4,8 +4,8 @@ import type {
 	RequestOptions,
 	EmbeddingResponse,
 } from "../types";
-import type { Logger } from "./logger";
-import { ApiService } from "../services/api";
+import type { Logger } from "../lib/logger";
+import { ApiService } from "./api";
 
 const BASE_AI_GATEWAY_URL = "https://gateway.ai.cloudflare.com/v1";
 

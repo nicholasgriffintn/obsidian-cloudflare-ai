@@ -9,7 +9,7 @@ import type {
 	VectorizeFilter,
 	VectorizeMetadataField,
 } from "../types";
-import type { Logger } from "./logger";
+import type { Logger } from "../lib/logger";
 
 const BASE_CLOUDFLARE_API_URL =
 	"https://api.cloudflare.com/client/v4/accounts/";

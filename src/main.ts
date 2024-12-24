@@ -3,9 +3,9 @@ import "virtual:uno.css";
 import { CloudflareAISettingsTab } from "./settings";
 
 import { ChatModal } from "./modals/chat";
-import { CloudflareAIGateway } from "./lib/cloudflare-ai-gateway";
+import { CloudflareAIGateway } from "./services/cloudflare-ai-gateway";
 import { SyncService } from "./services/sync";
-import { CloudflareVectorize } from "./lib/cloudflare-vectorize";
+import { CloudflareVectorize } from "./services/cloudflare-vectorize";
 import type { CloudflareAIPluginSettings } from "./types";
 import { Logger } from "./lib/logger";
 import { DEFAULT_SETTINGS, PLUGIN_NAME } from "./constants";

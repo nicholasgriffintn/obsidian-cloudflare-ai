@@ -2,7 +2,7 @@ import { Notice } from "obsidian";
 import type { App, Editor, EditorPosition } from "obsidian";
 
 import type { Logger } from "../lib/logger";
-import type { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
+import type { CloudflareAIGateway } from "./cloudflare-ai-gateway";
 import type { CloudflareAIPluginSettings, Template } from "../types";
 import type { TemplateManager } from "./template-manager";
 import { TextGeneratorModal } from "../modals/generate-text";

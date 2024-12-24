@@ -7,8 +7,8 @@ import type {
 	VectorSearchResult,
 	VectorMatch,
 } from "../types";
-import { CloudflareAIGateway } from "../lib/cloudflare-ai-gateway";
-import { CloudflareVectorize } from "../lib/cloudflare-vectorize";
+import { CloudflareAIGateway } from "../services/cloudflare-ai-gateway";
+import { CloudflareVectorize } from "../services/cloudflare-vectorize";
 import { Logger } from "../lib/logger";
 import { SyncService } from "../services/sync";
 
