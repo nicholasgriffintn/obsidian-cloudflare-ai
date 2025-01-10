@@ -22,12 +22,17 @@ function updateVersionFile(filePath: string, updater: (data: any) => any) {
 	}
 }
 
-const manifest = updateVersionFile("public/manifest.json", (manifest) => {
+const manifest = updateVersionFile("manifest.json", (manifest) => {
 	manifest.version = targetVersion;
 	return manifest;
 });
 
-updateVersionFile("public/versions.json", (versions) => {
+updateVersionFile("manifest-beta.json", (manifest) => {
+	manifest.version = targetVersion;
+	return manifest;
+});
+
+updateVersionFile("versions.json", (versions) => {
 	versions[targetVersion] = manifest.minAppVersion;
 	return versions;
 });

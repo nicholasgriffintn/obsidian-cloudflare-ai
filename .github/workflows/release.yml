@@ -61,9 +61,9 @@ jobs:
           files: |
             ${{ env.PLUGIN_NAME }}-${{ steps.get_version.outputs.VERSION }}.zip
             build/main.js
-            build/manifest.json
+            manifest.json
             build/styles.css
-            build/versions.json
+            versions.json
           draft: false
           prerelease: false
           generate_release_notes: true
