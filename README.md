@@ -25,6 +25,7 @@ https://github.com/user-attachments/assets/01f17af8-3adb-4a22-9dad-86948064353c
 - [ ] Add an image generation mode where you can insert the response into the current note.
 - [ ] Add a speech to text mode.
 - [ ] Look at adding other providers like Anthropic, OpenAI, etc.
+- [ ] Store the ragId in the database and update my assistant to use that if available
 
 ## Requirements
 
@@ -50,21 +51,12 @@ In order for the filters to work, you will need to create a number of indexes in
 
 These include:
 
-┌───────────────┬────────┐
-│ propertyName  │ type   │
-├───────────────┼────────┤
-│ type          │ String │
-├───────────────┼────────┤
-│ createdMonth  │ Number │
-├───────────────┼────────┤
-│ createdYear   │ Number │
-├───────────────┼────────┤
-│ modifiedMonth │ Number │
-├───────────────┼────────┤
-│ modifiedYear  │ Number │
-├───────────────┼────────┤
-│ extension     │ String │
-└───────────────┴────────┘
+- `type` - String
+- `createdMonth` - Number
+- `createdYear` - Number
+- `modifiedMonth` - Number
+- `modifiedYear` - Number
+- `extension` - String
 
 You can use Wrangler to do this, for example:
 
